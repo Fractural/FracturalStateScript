@@ -1,0 +1,19 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FracturalStateScript", "FracturalStateScript.csproj", "{AA882A25-F95C-49D3-BD27-5752E8BB5561}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+	Debug|Any CPU = Debug|Any CPU
+	ExportDebug|Any CPU = ExportDebug|Any CPU
+	ExportRelease|Any CPU = ExportRelease|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AA882A25-F95C-49D3-BD27-5752E8BB5561}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA882A25-F95C-49D3-BD27-5752E8BB5561}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA882A25-F95C-49D3-BD27-5752E8BB5561}.ExportDebug|Any CPU.ActiveCfg = ExportDebug|Any CPU
+		{AA882A25-F95C-49D3-BD27-5752E8BB5561}.ExportDebug|Any CPU.Build.0 = ExportDebug|Any CPU
+		{AA882A25-F95C-49D3-BD27-5752E8BB5561}.ExportRelease|Any CPU.ActiveCfg = ExportRelease|Any CPU
+		{AA882A25-F95C-49D3-BD27-5752E8BB5561}.ExportRelease|Any CPU.Build.0 = ExportRelease|Any CPU
+	EndGlobalSection
+EndGlobal

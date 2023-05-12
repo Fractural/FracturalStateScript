@@ -1,0 +1,272 @@
+[gd_scene load_steps=13 format=2]
+
+[ext_resource path="res://addons/FracturalStateScript/EntryNode.cs" type="Script" id=1]
+[ext_resource path="res://addons/FracturalStateScript/EffectNode.cs" type="Script" id=2]
+[ext_resource path="res://addons/FracturalStateScript/ActionNode.cs" type="Script" id=3]
+[ext_resource path="res://addons/FracturalStateScript/StateNode.cs" type="Script" id=4]
+
+[sub_resource type="StyleBoxFlat" id=1]
+content_margin_left = 18.0
+content_margin_right = 18.0
+content_margin_top = 34.0
+content_margin_bottom = 10.0
+bg_color = Color( 0.180392, 0.164706, 0.164706, 1 )
+border_width_left = 2
+border_width_top = 24
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color( 0.305882, 0.611765, 0.176471, 1 )
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color( 0, 0, 0, 0.5 )
+shadow_size = 8
+shadow_offset = Vector2( 0, 4 )
+
+[sub_resource type="StyleBoxFlat" id=2]
+content_margin_left = 18.0
+content_margin_right = 18.0
+content_margin_top = 34.0
+content_margin_bottom = 10.0
+bg_color = Color( 0.180392, 0.164706, 0.164706, 1 )
+border_width_left = 2
+border_width_top = 24
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color( 0.305882, 0.611765, 0.176471, 0.5 )
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color( 0, 0, 0, 0.5 )
+shadow_size = 8
+shadow_offset = Vector2( 0, 4 )
+
+[sub_resource type="StyleBoxFlat" id=3]
+content_margin_left = 18.0
+content_margin_right = 18.0
+content_margin_top = 34.0
+content_margin_bottom = 10.0
+bg_color = Color( 0.180392, 0.164706, 0.164706, 1 )
+border_width_left = 2
+border_width_top = 24
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color( 0.0784314, 0.341176, 0.729412, 1 )
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color( 0, 0, 0, 0.5 )
+shadow_size = 8
+shadow_offset = Vector2( 0, 4 )
+
+[sub_resource type="StyleBoxFlat" id=4]
+content_margin_left = 18.0
+content_margin_right = 18.0
+content_margin_top = 34.0
+content_margin_bottom = 10.0
+bg_color = Color( 0.180392, 0.164706, 0.164706, 1 )
+border_width_left = 2
+border_width_top = 24
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color( 0.0784314, 0.341176, 0.729412, 0.5 )
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color( 0, 0, 0, 0.5 )
+shadow_size = 8
+shadow_offset = Vector2( 0, 4 )
+
+[sub_resource type="StyleBoxFlat" id=5]
+content_margin_left = 18.0
+content_margin_right = 18.0
+content_margin_top = 34.0
+content_margin_bottom = 10.0
+bg_color = Color( 0.180392, 0.164706, 0.164706, 1 )
+border_width_left = 2
+border_width_top = 24
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color( 0.729412, 0.329412, 0.0784314, 1 )
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color( 0, 0, 0, 0.5 )
+shadow_size = 8
+shadow_offset = Vector2( 0, 4 )
+
+[sub_resource type="StyleBoxFlat" id=6]
+content_margin_left = 18.0
+content_margin_right = 18.0
+content_margin_top = 34.0
+content_margin_bottom = 10.0
+bg_color = Color( 0.180392, 0.164706, 0.164706, 1 )
+border_width_left = 2
+border_width_top = 24
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color( 0.729412, 0.329412, 0.0784314, 0.5 )
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color( 0, 0, 0, 0.5 )
+shadow_size = 8
+shadow_offset = Vector2( 0, 4 )
+
+[sub_resource type="StyleBoxFlat" id=7]
+content_margin_left = 18.0
+content_margin_right = 18.0
+content_margin_top = 34.0
+content_margin_bottom = 10.0
+bg_color = Color( 0.180392, 0.164706, 0.164706, 1 )
+border_width_left = 2
+border_width_top = 24
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color( 0.729412, 0.0784314, 0.0784314, 1 )
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color( 0, 0, 0, 0.5 )
+shadow_size = 8
+shadow_offset = Vector2( 0, 4 )
+
+[sub_resource type="StyleBoxFlat" id=8]
+content_margin_left = 18.0
+content_margin_right = 18.0
+content_margin_top = 34.0
+content_margin_bottom = 10.0
+bg_color = Color( 0.180392, 0.164706, 0.164706, 1 )
+border_width_left = 2
+border_width_top = 24
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color( 0.729412, 0.0784314, 0.0784314, 0.5 )
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color( 0, 0, 0, 0.5 )
+shadow_size = 8
+shadow_offset = Vector2( 0, 4 )
+
+[node name="Control" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="GraphEdit" type="GraphEdit" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="EntryNode" type="GraphNode" parent="."]
+margin_left = 33.0
+margin_top = 75.0
+margin_right = 133.0
+margin_bottom = 148.0
+rect_min_size = Vector2( 100, 50 )
+custom_colors/close_color = Color( 1, 1, 1, 1 )
+custom_colors/title_color = Color( 1, 1, 1, 1 )
+custom_colors/resizer_color = Color( 1, 1, 1, 1 )
+custom_constants/separation = 8
+custom_styles/frame = SubResource( 1 )
+custom_styles/selectedframe = SubResource( 2 )
+title = "Entry"
+slot/0/left_enabled = false
+slot/0/left_type = 0
+slot/0/left_color = Color( 1, 1, 1, 1 )
+slot/0/right_enabled = true
+slot/0/right_type = 0
+slot/0/right_color = Color( 1, 1, 1, 1 )
+script = ExtResource( 1 )
+CommentText = "asdfasdf"
+InfoText = "asdfasdfasdf"
+
+[node name="EffectNode" type="GraphNode" parent="."]
+margin_left = 189.0
+margin_top = 123.0
+margin_right = 221.0
+margin_bottom = 153.0
+rect_min_size = Vector2( 100, 50 )
+custom_colors/close_color = Color( 1, 1, 1, 1 )
+custom_colors/title_color = Color( 1, 1, 1, 1 )
+custom_colors/resizer_color = Color( 1, 1, 1, 1 )
+custom_constants/separation = 8
+custom_styles/frame = SubResource( 3 )
+custom_styles/selectedframe = SubResource( 4 )
+title = "Effect"
+slot/0/left_enabled = true
+slot/0/left_type = 0
+slot/0/left_color = Color( 1, 1, 1, 1 )
+slot/0/right_enabled = true
+slot/0/right_type = 0
+slot/0/right_color = Color( 1, 1, 1, 1 )
+script = ExtResource( 2 )
+CommentText = "sdfsdf"
+InfoText = "The quick brown
+fox jumps over the 
+lazy dog'df"
+
+[node name="StateNode" type="GraphNode" parent="."]
+margin_left = 354.0
+margin_top = 155.0
+margin_right = 454.0
+margin_bottom = 205.0
+rect_min_size = Vector2( 100, 50 )
+custom_colors/close_color = Color( 1, 1, 1, 1 )
+custom_colors/title_color = Color( 1, 1, 1, 1 )
+custom_colors/resizer_color = Color( 1, 1, 1, 1 )
+custom_constants/separation = 8
+custom_styles/frame = SubResource( 5 )
+custom_styles/selectedframe = SubResource( 6 )
+title = "State"
+slot/0/left_enabled = true
+slot/0/left_type = 0
+slot/0/left_color = Color( 1, 1, 1, 1 )
+slot/0/right_enabled = true
+slot/0/right_type = 0
+slot/0/right_color = Color( 1, 1, 1, 1 )
+slot/1/left_enabled = true
+slot/1/left_type = 0
+slot/1/left_color = Color( 1, 1, 1, 1 )
+slot/1/right_enabled = true
+slot/1/right_type = 0
+slot/1/right_color = Color( 1, 1, 1, 1 )
+script = ExtResource( 4 )
+CommentText = "sdfsdf"
+
+[node name="ActionNode" type="GraphNode" parent="."]
+margin_left = 483.0
+margin_top = 46.0
+margin_right = 583.0
+margin_bottom = 96.0
+rect_min_size = Vector2( 100, 50 )
+custom_colors/close_color = Color( 1, 1, 1, 1 )
+custom_colors/title_color = Color( 1, 1, 1, 1 )
+custom_colors/resizer_color = Color( 1, 1, 1, 1 )
+custom_constants/separation = 8
+custom_styles/frame = SubResource( 7 )
+custom_styles/selectedframe = SubResource( 8 )
+title = "Action"
+slot/0/left_enabled = true
+slot/0/left_type = 0
+slot/0/left_color = Color( 1, 1, 1, 1 )
+slot/0/right_enabled = true
+slot/0/right_type = 0
+slot/0/right_color = Color( 1, 1, 1, 1 )
+script = ExtResource( 3 )
+CommentText = "sdfsdfsdfsdfsdf"
+InfoText = "sdfsdfsd"
+
+[node name="VBoxContainer5" type="VBoxContainer" parent="."]
+anchor_top = 1.0
+anchor_bottom = 1.0
+margin_top = -600.0
+margin_right = 40.0
+margin_bottom = -560.0
