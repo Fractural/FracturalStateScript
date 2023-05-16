@@ -1,0 +1,8 @@
+[submodule "addons/FracturalCommons"]
+	path = addons/FracturalCommons
+	url = https://github.com/fractural/fracturalcommons
+	branch = release
+[submodule "addons/GodotRollbackNetcodeMono"]
+	path = addons/GodotRollbackNetcodeMono
+	url = https://github.com/Fractural/GodotRollbackNetcodeMono
+	branch = release
