@@ -6,3 +6,7 @@
 	path = addons/GodotRollbackNetcodeMono
 	url = https://github.com/Fractural/GodotRollbackNetcodeMono
 	branch = release
+[submodule "addons/FracturalInject"]
+	path = addons/FracturalInject
+	url = https://github.com/fractural/FracturalInject
+	branch = release

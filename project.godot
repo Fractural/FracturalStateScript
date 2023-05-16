@@ -49,7 +49,7 @@ SyncManager="*res://addons/godot-rollback-netcode/SyncManager.gd"
 
 [editor_plugins]
 
-enabled=PoolStringArray( "res://addons/FracturalCommons/plugin.cfg", "res://addons/FracturalStateScript/plugin.cfg", "res://addons/editor_icon_previewer/plugin.cfg", "res://addons/godot-rollback-netcode/plugin.cfg" )
+enabled=PoolStringArray( "res://addons/editor_icon_previewer/plugin.cfg", "res://addons/godot-rollback-netcode/plugin.cfg" )
 
 [gui]
 

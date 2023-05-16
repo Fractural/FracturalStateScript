@@ -1,8 +1,11 @@
-﻿using Godot;
+﻿using Fractural.DependencyInjection;
+using Godot;
+using Godot.Collections;
 
 namespace Fractural.StateScript
 {
-    public abstract class ValueNodeVar<T> : Node, IValueNodeVar
+    [Tool]
+    public abstract class ValueNodeVar<T> : Dependency, IValueNodeVar
     {
         [Export]
         public T InitialValueTyped { get; set; }
@@ -23,6 +26,19 @@ namespace Fractural.StateScript
         public virtual void Reset()
         {
             InitialValueTyped = ValueTyped;
+        }
+
+        public override Array _GetPropertyList()
+        {
+            var builder = new PropertyListBuilder();
+            builder.AddItem(
+                name: nameof(DependencyPath),
+                type: Variant.Type.NodePath,
+                hint: PropertyHint.None,
+                hintString: HintString.DependencyPath,
+                usage: PropertyUsageFlags.Default
+            );
+            return builder.Build();
         }
     }
 }
