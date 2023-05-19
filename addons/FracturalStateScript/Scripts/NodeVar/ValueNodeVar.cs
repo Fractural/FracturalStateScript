@@ -5,11 +5,6 @@ using GDC = Godot.Collections;
 
 namespace Fractural.StateScript
 {
-    public class NameToNodeVar : Resource
-    {
-        [Export]
-        public string
-    }
     [Tool]
     public class ExpressionNodeVar : Dependency, IGetNodeVar
     {
@@ -27,7 +22,7 @@ namespace Fractural.StateScript
                 name: nameof(NodeVars),
                 type: Variant.Type.Dictionary,
                 hint: PropertyHint.None,
-                hintString: HintString., // TODO: Finish this after better Dictionary support is implemented in FracturalCommons
+                hintString: HintString.TypedDictionary, // TODO: Finish this after better Dictionary support is implemented in FracturalCommons
                 usage: PropertyUsageFlags.Default
             );
             return builder.Build();
