@@ -1,13 +1,37 @@
 ﻿using Fractural.DependencyInjection;
 using Godot;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using GDC = Godot.Collections;
 
 namespace Fractural.StateScript
 {
+    public class ExpressionParser
+    {
+        // TODO: Write expression parser.
+        public object Evaluate(string expression, IDictionary<string, object> vars)
+        {
+            int bracketCounter = 0;
+            int operatorIndex = -1;
+            for (int i = 0; i < expression.Length(); i++)
+            {
+                char c = expression[i];
+                if (c == '(') bracketCounter++;
+                else if (c == ')') bracketCounter--;
+                else if ((c == '+' || c == '-') && bracketCounter == 0)
+                {
+                    operatorIndex = i;
+                    break;
+                }
+                else if (c == '*' || c == '/' && bracketCounter)
+            }
+        }
+    }
     [Tool]
     public class ExpressionNodeVar : Dependency, IGetNodeVar
     {
+
         [Export]
         public string Expression { get; set; }
         /// <summary>
@@ -22,8 +46,7 @@ namespace Fractural.StateScript
                 name: nameof(NodeVars),
                 type: Variant.Type.Dictionary,
                 hint: PropertyHint.None,
-                hintString: HintString.TypedDictionary, // TODO: Finish this after better Dictionary support is implemented in FracturalCommons
-                usage: PropertyUsageFlags.Default
+                hintString: HintString.GetTypedDictionary<string, NodePath>() // TODO: Finish this after better Dictionary support is implemented in FracturalCommons
             );
             return builder.Build();
         }
