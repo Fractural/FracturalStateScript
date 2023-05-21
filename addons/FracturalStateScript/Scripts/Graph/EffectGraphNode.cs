@@ -14,9 +14,4 @@ namespace Fractural.StateScript
             base._Ready();
         }
     }
-
-    public class Effect
-    {
-
-    }
 }

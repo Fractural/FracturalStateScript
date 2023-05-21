@@ -16,11 +16,4 @@ namespace Fractural.StateScript
             base._Ready();
         }
     }
-
-    public interface IStateScriptNode
-    {
-        string NodeType { get; }
-        event System.Action Exited;
-        void OnEnter();
-    }
 }

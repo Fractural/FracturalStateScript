@@ -5,7 +5,7 @@ using System;
 namespace Fractural.StateScript
 {
     [Tool]
-    public class Plugin : ExtendedPlugin
+    public class StateScriptPlugin : ExtendedPlugin
     {
         public override string PluginName => "Fractural State Script";
         public StateScriptEditor stateScriptEditor;
@@ -23,7 +23,7 @@ namespace Fractural.StateScript
                 if (focusedObject != value)
                 {
                     focusedObject = value;
-                    OnFocusedObjectChanged(value);
+                    //OnFocusedObjectChanged(value);
                 }
             }
         }
@@ -35,8 +35,9 @@ namespace Fractural.StateScript
             ShowStateScriptEditor();
 
             editorSelection = GetEditorInterface().GetSelection();
-            editorSelection.Connect("selection_changed", this, nameof(OnEditorSelectionSelectionChanged));
+            //editorSelection.Connect("selection_changed", this, nameof(OnEditorSelectionSelectionChanged));
 
+            AddManagedInspectorPlugin(new ActionInspectorPlugin());
         }
 
         protected override void Unload()
@@ -63,27 +64,28 @@ namespace Fractural.StateScript
             }
         }
 
-        private void OnEditorSelectionSelectionChanged()
-        {
-            var selectedNodes = editorSelection.GetSelectedNodes();
-            if (selectedNodes.Count == 1)
-            {
-                var selectedNode = selectedNodes[0];
-                if (selectedNode is StateScriptPlayer2D stateScriptPlayer)
-                {
-                    FocusedObject = stateScriptPlayer;
-                    return;
-                }
-            }
-            FocusedObject = null;
-        }
+        // TODO: Finish StateScript graph editor
+        //private void OnEditorSelectionSelectionChanged()
+        //{
+        //    var selectedNodes = editorSelection.GetSelectedNodes();
+        //    if (selectedNodes.Count == 1)
+        //    {
+        //        var selectedNode = selectedNodes[0];
+        //        if (selectedNode is StateScriptPlayer2D stateScriptPlayer)
+        //        {
+        //            FocusedObject = stateScriptPlayer;
+        //            return;
+        //        }
+        //    }
+        //    FocusedObject = null;
+        //}
 
-        private void OnFocusedObjectChanged(Godot.Object newFocusedObj)
-        {
-            if (newFocusedObj is StateScriptPlayer2D)
-            {
+        //private void OnFocusedObjectChanged(Godot.Object newFocusedObj)
+        //{
+        //    if (newFocusedObj is StateScriptPlayer2D)
+        //    {
 
-            }
-        }
+        //    }
+        //}
     }
 }

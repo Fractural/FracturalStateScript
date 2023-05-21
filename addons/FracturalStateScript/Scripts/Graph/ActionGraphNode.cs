@@ -15,14 +15,9 @@ namespace Fractural.StateScript
             base._Ready();
         }
 
-        public Action Serialize()
-        {
-            return new Action() { };
-        }
-    }
-
-    public class Action
-    {
-
+        //public Action Serialize()
+        //{
+        //    return new Action() { };
+        //}
     }
 }
