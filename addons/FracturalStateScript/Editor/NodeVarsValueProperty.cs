@@ -8,24 +8,41 @@ using GDC = Godot.Collections;
 
 namespace Fractural.StateScript
 {
+    // TODO: Finish integerating NodeVarData
+    [Flags]
+    public enum NodeVarOperations
+    {
+        Getter,
+        Setter
+    }
+
+    public class NodeVarData
+    {
+        public Type ValueType { get; set; }
+        public NodeVarOperations Operations { get; set; }
+        public string Name { get; set; }
+    }
+
     public class NodeVarsValueProperty : ValueProperty<GDC.Dictionary>
     {
         private Button _editButton;
         private Control _container;
         private Button _addElementButton;
         private VBoxContainer _keyValueEntriesVBox;
-        private IDictionary<string, Type> _nodeVarsDict = new Dictionary<string, Type>();;
+        private IDictionary<string, NodeVarData> _nodeVarsDict = new Dictionary<string, NodeVarData>();
         private Node _sceneRoot;
+        private Node _relativeToNode;
 
         private string EditButtonText => $"NodeVars [{Value.Count}]";
 
         public NodeVarsValueProperty() { }
-        public NodeVarsValueProperty(Node sceneRoot, Tuple<string, Type>[] fixedNodeVars, bool addEnabled) : base()
+        public NodeVarsValueProperty(Node sceneRoot, Node relativeToNode, NodeVarData[] fixedNodeVars, bool addEnabled) : base()
         {
             _sceneRoot = sceneRoot;
+            _relativeToNode = relativeToNode;
 
             foreach (var nodeVar in fixedNodeVars)
-                _nodeVarsDict.Add(nodeVar.Item1, nodeVar.Item2);
+                _nodeVarsDict.Add(nodeVar.Name, nodeVar);
 
             _editButton = new Button();
             _editButton.ToggleMode = true;
@@ -36,7 +53,7 @@ namespace Fractural.StateScript
             if (addEnabled)
             {
                 _addElementButton = new Button();
-                _addElementButton.Text = "Add Key Value Pair";
+                _addElementButton.Text = "Add NodeVar";
                 _addElementButton.Connect("pressed", this, nameof(OnAddElementPressed));
                 _addElementButton.SizeFlagsHorizontal = (int)SizeFlags.ExpandFill;
                 _addElementButton.RectMinSize = new Vector2(24 * 4, 0);
@@ -90,7 +107,7 @@ namespace Fractural.StateScript
             int index = 0;
             int childCount = _keyValueEntriesVBox.GetChildCount();
 
-            var currFocusedEntry = _currentFocused?.GetAncestor<DictionaryValuePropertyKeyValueEntry>();
+            var currFocusedEntry = _currentFocused?.GetAncestor<NodeVarsValuePropertyKeyValueEntry>();
             if (currFocusedEntry != null)
             {
                 int keyIndex = 0;
@@ -110,21 +127,21 @@ namespace Fractural.StateScript
                 }
                 else
                 {
-                    var targetEntry = _keyValueEntriesVBox.GetChild<DictionaryValuePropertyKeyValueEntry>(keyIndex);
+                    var targetEntry = _keyValueEntriesVBox.GetChild<NodeVarsValuePropertyKeyValueEntry>(keyIndex);
                     _keyValueEntriesVBox.SwapChildren(targetEntry, currFocusedEntry);
                 }
             }
 
-            foreach (var key in Value.Keys)
+            foreach (string key in Value.Keys)
             {
-                DictionaryValuePropertyKeyValueEntry entry;
+                NodeVarsValuePropertyKeyValueEntry entry;
                 if (index >= childCount)
                     entry = CreateDefaultEntry();
                 else
-                    entry = _keyValueEntriesVBox.GetChild<DictionaryValuePropertyKeyValueEntry>(index);
+                    entry = _keyValueEntriesVBox.GetChild<NodeVarsValuePropertyKeyValueEntry>(index);
 
                 if (currFocusedEntry == null || entry != currFocusedEntry)
-                    entry.SetKeyValue(key, Value[key]);
+                    entry.SetKeyValue(key, Value.Get<NodePath>(key));
                 index++;
             }
 
@@ -133,7 +150,7 @@ namespace Fractural.StateScript
             {
                 for (int i = childCount - 1; i >= index; i--)
                 {
-                    var entry = _keyValueEntriesVBox.GetChild<DictionaryValuePropertyKeyValueEntry>(i);
+                    var entry = _keyValueEntriesVBox.GetChild<NodeVarsValuePropertyKeyValueEntry>(i);
                     entry.KeyChanged -= OnDictKeyChanged;
                     entry.ValueChanged -= OnDictValueChanged;
                     entry.QueueFree();
@@ -150,14 +167,16 @@ namespace Fractural.StateScript
         {
             var property = ValueProperty.CreateValueProperty(type);
             if (type == typeof(NodePath) && property is NodePathValueProperty valueProperty)
+            {
                 valueProperty.SelectRootNode = _sceneRoot;
+                valueProperty.RelativeToNode = _relativeToNode;
+            }
             return property;
         }
 
         private NodeVarsValuePropertyKeyValueEntry CreateDefaultEntry()
         {
-            // TODO NOW: FInish NodeVarsValueProperty
-            var entry = new NodeVarsValuePropertyKeyValueEntry(CreateValueProperty(_keyType), CreateValueProperty(_valueType));
+            var entry = new NodeVarsValuePropertyKeyValueEntry();
             entry.KeyChanged += OnDictKeyChanged;
             entry.ValueChanged += OnDictValueChanged;
             entry.Deleted += OnDictKeyDeleted;
@@ -167,7 +186,7 @@ namespace Fractural.StateScript
             return entry;
         }
 
-        private void OnDictKeyChanged(object oldKey, DictionaryValuePropertyKeyValueEntry entry)
+        private void OnDictKeyChanged(string oldKey, NodeVarsValuePropertyKeyValueEntry entry)
         {
             var newKey = entry.CurrentKey;
             if (Value.Contains(newKey))
@@ -202,8 +221,8 @@ namespace Fractural.StateScript
             // Note the edited a field in Value doesn't invoke ValueChanged, so we must do it manually
             //
             // Use default types for the newly added element
-            var nextKey = DefaultValueUtils.GetDefault(_keyType, Value.Keys);
-            Value[nextKey] = DefaultValueUtils.GetDefault(_valueType);
+            var nextKey = DefaultValueUtils.GetDefault(Value.Keys.Cast<string>());
+            Value[nextKey] = DefaultValueUtils.GetDefault<NodePath>();
             InvokeValueChanged(Value);
         }
 

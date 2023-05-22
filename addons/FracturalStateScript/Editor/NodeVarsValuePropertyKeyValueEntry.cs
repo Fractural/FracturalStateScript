@@ -30,7 +30,7 @@ namespace Fractural.StateScript
                 _disabled = value;
                 if (IsInsideTree())
                 {
-                    _nameValueProperty.Disabled = !NameEditable || value;
+                    KeyProperty.Disabled = !NameEditable || value;
                     _deleteButton.Disabled = value;
                 }
             }
@@ -39,15 +39,18 @@ namespace Fractural.StateScript
         public bool NameEditable { get; private set; }
 
         public string CurrentKey { get; set; }
-        private StringValueProperty _nameValueProperty;
-        private NodePathValueProperty _nodePathValueProperty;
+        public StringValueProperty KeyProperty { get; set; }
+        public NodePathValueProperty ValueProperty { get; set; }
 
         private Button _deleteButton;
         private TextureRect _typeIconRect;
+        private NodeVarData _data;
 
         public NodeVarsValuePropertyKeyValueEntry() { }
-        public NodeVarsValuePropertyKeyValueEntry(string name, Type type, NodeVarType nodeVarType, Node rootNode, bool deletable, bool nameEditable)
+        public NodeVarsValuePropertyKeyValueEntry(NodeVarData data, Node rootNode, bool deletable, bool nameEditable)
         {
+            _data = data;
+
             Deletable = deletable;
             NameEditable = nameEditable;
 
@@ -57,37 +60,37 @@ namespace Fractural.StateScript
             control.RectSize = new Vector2(24, 0);
             AddChild(control);
 
-            _nameValueProperty = new StringValueProperty();
-            _nameValueProperty.ValueChanged += OnKeyChanged;
-            _nameValueProperty.SizeFlagsHorizontal = (int)SizeFlags.ExpandFill;
-            _nameValueProperty.Disabled = !nameEditable;
+            KeyProperty = new StringValueProperty();
+            KeyProperty.ValueChanged += OnKeyChanged;
+            KeyProperty.SizeFlagsHorizontal = (int)SizeFlags.ExpandFill;
+            KeyProperty.Disabled = !nameEditable;
 
-            _nodePathValueProperty = new NodePathValueProperty(rootNode, (node) =>
+            ValueProperty = new NodePathValueProperty(rootNode, (node) =>
             {
                 // NOTE: We do not have a way to 100% ensure the type of the NodeVar is of the type required.
                 //       This is because we use nodes like InheritedNodeVar, which have no type requirements
                 //       at all, and instead end up throwing a runtime error if you attempt to fetch and use the
                 //       NodeVar as a different type.
-                if ((nodeVarType & NodeVarType.Getter) != 0 && node is IGetNodeVar)
+                if ((data.Operations & NodeVarOperations.Getter) != 0 && node is IGetNodeVar)
                 {
                     // We have stricter type requirements if you are using ValueNodeVars
                     if (node.GetType().IsSubclassOfGeneric(typeof(ValueNodeVar<>)))
-                        return node.GetType().IsSubclassOfGeneric(typeof(ValueNodeVar<>), type);
+                        return node.GetType().IsSubclassOfGeneric(typeof(ValueNodeVar<>), data.ValueType);
                     return true;
                 }
-                else if ((nodeVarType & NodeVarType.Setter) != 0 && node is ISetNodeVar)
+                else if ((data.Operations & NodeVarOperations.Setter) != 0 && node is ISetNodeVar)
                 {
                     // We have stricter type requirements if you are using ValueNodeVars
                     if (node.GetType().IsSubclassOfGeneric(typeof(ValueNodeVar<>)))
-                        return node.GetType().IsSubclassOfGeneric(typeof(ValueNodeVar<>), type);
+                        return node.GetType().IsSubclassOfGeneric(typeof(ValueNodeVar<>), data.ValueType);
                     return true;
                 }
                 return false;
             });
-            _nodePathValueProperty.ValueChanged += OnValueChanged;
-            _nodePathValueProperty.SizeFlagsHorizontal = (int)SizeFlags.ExpandFill;
+            ValueProperty.ValueChanged += OnValueChanged;
+            ValueProperty.SizeFlagsHorizontal = (int)SizeFlags.ExpandFill;
 
-            AddChild(_nameValueProperty);
+            AddChild(KeyProperty);
 
             _typeIconRect = new TextureRect();
             AddChild(_typeIconRect);
@@ -97,7 +100,7 @@ namespace Fractural.StateScript
             label.ClipText = true;
             AddChild(label);
 
-            AddChild(_nodePathValueProperty);
+            AddChild(ValueProperty);
 
             _deleteButton = new Button();
             _deleteButton.Connect("pressed", this, nameof(OnDeletePressed));
@@ -120,15 +123,15 @@ namespace Fractural.StateScript
         {
             if (what == NotificationPredelete)
             {
-                _nameValueProperty.ValueChanged -= OnKeyChanged;
-                _nodePathValueProperty.ValueChanged -= OnValueChanged;
+                KeyProperty.ValueChanged -= OnKeyChanged;
+                ValueProperty.ValueChanged -= OnValueChanged;
             }
         }
 
         public void SetKeyValue(string key, NodePath value)
         {
-            _nameValueProperty.SetValue(key);
-            _nodePathValueProperty.SetValue(value);
+            KeyProperty.SetValue(key);
+            ValueProperty.SetValue(value);
             CurrentKey = key;
         }
 

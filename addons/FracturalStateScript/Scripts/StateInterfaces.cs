@@ -2,6 +2,11 @@
 
 namespace Fractural.StateScript
 {
+    public interface IStateGraph : IState
+    {
+
+    }
+
     public interface IState : IAction
     {
         event System.Action Exited;
