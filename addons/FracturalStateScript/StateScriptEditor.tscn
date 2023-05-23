@@ -1,6 +1,6 @@
 [gd_scene load_steps=9 format=2]
 
-[ext_resource path="res://addons/FracturalStateScript/Scripts/EntryNode.cs" type="Script" id=1]
+[ext_resource path="res://addons/FracturalStateScript/Scripts/Graph/EntryGraphNode.cs" type="Script" id=1]
 [ext_resource path="res://addons/FracturalStateScript/Scripts/StateScriptEditor.cs" type="Script" id=2]
 
 [sub_resource type="StyleBoxFlat" id=1]

@@ -8,41 +8,35 @@ using GDC = Godot.Collections;
 
 namespace Fractural.StateScript
 {
-    // TODO: Finish integerating NodeVarData
-    [Flags]
-    public enum NodeVarOperations
+    // TODO NOW: Finish integerating NodeVarData
+    public enum NodeVarOperation
     {
-        Getter,
-        Setter
+        Get,
+        Set,
+        GetSet,
+        Private
     }
 
-    public class NodeVarData
-    {
-        public Type ValueType { get; set; }
-        public NodeVarOperations Operations { get; set; }
-        public string Name { get; set; }
-    }
-
+    [Tool]
     public class NodeVarsValueProperty : ValueProperty<GDC.Dictionary>
     {
         private Button _editButton;
         private Control _container;
         private Button _addElementButton;
         private VBoxContainer _keyValueEntriesVBox;
-        private IDictionary<string, NodeVarData> _nodeVarsDict = new Dictionary<string, NodeVarData>();
         private Node _sceneRoot;
         private Node _relativeToNode;
+        private NodeVarData[] _fixedNodeVars;
 
         private string EditButtonText => $"NodeVars [{Value.Count}]";
+        private bool IsFixed => _fixedNodeVars != null;
 
         public NodeVarsValueProperty() { }
-        public NodeVarsValueProperty(Node sceneRoot, Node relativeToNode, NodeVarData[] fixedNodeVars, bool addEnabled) : base()
+        public NodeVarsValueProperty(Node sceneRoot, Node relativeToNode, NodeVarData[] fixedNodeVars = null) : base()
         {
             _sceneRoot = sceneRoot;
             _relativeToNode = relativeToNode;
-
-            foreach (var nodeVar in fixedNodeVars)
-                _nodeVarsDict.Add(nodeVar.Name, nodeVar);
+            _fixedNodeVars = fixedNodeVars;
 
             _editButton = new Button();
             _editButton.ToggleMode = true;
@@ -50,7 +44,7 @@ namespace Fractural.StateScript
             _editButton.Connect("toggled", this, nameof(OnEditToggled));
             AddChild(_editButton);
 
-            if (addEnabled)
+            if (!IsFixed)
             {
                 _addElementButton = new Button();
                 _addElementButton.Text = "Add NodeVar";
@@ -63,7 +57,7 @@ namespace Fractural.StateScript
 
             var vbox = new VBoxContainer();
             vbox.SizeFlagsHorizontal = (int)SizeFlags.ExpandFill;
-            if (addEnabled)
+            if (_fixedNodeVars == null)
                 vbox.AddChild(_addElementButton);
             vbox.AddChild(_keyValueEntriesVBox);
 
@@ -99,21 +93,54 @@ namespace Fractural.StateScript
 
         public override void UpdateProperty()
         {
-            _container.Visible = this.GetMeta<bool>("visible", false);
-            _editButton.Pressed = _container.Visible;
+            // Force the entries in Value dict to match the entires in _fixedNodeVars.
+            if (IsFixed)
+            {
+                bool changed = false;
+                if (Value == null)
+                    Value = new GDC.Dictionary();
+                // Popupulate Value with any _fixedNodeVars that it is missing
+                foreach (var entry in _fixedNodeVars)
+                {
+                    if (Value.Contains(entry.Name))
+                        continue;
+                    // Value dict does not contain an entry in _fixedNodeVars, so we add it to Value dict
+                    changed = true;
+                    Value[entry.Name] = entry.ToGDDict();
+                }
+                foreach (string key in Value.Keys)
+                {
+                    if (_fixedNodeVars.Any(x => x.Name == key))
+                        continue;
+                    // _fixedNodeVars doesn't contain an entry in Value dict, so we remove it from Value dict
+                    changed = true;
+                    Value.Remove(key);
+                }
 
+                if (changed)
+                {
+                    InvokeValueChanged(Value);  // InvokeValueChanged should call UpdateProperty again.
+                    return;
+                }
+            }
+
+            GD.Print("Updating prop");
+            _container.Visible = this.GetMeta<bool>("visible", true);   // Default to being visible if the meta tag doesn't exist.
+            _editButton.Pressed = _container.Visible;
             _editButton.Text = EditButtonText;
 
+            GD.Print("Updating prop 2");
             int index = 0;
             int childCount = _keyValueEntriesVBox.GetChildCount();
 
-            var currFocusedEntry = _currentFocused?.GetAncestor<NodeVarsValuePropertyKeyValueEntry>();
+            GD.Print("Updating prop 3");
+            var currFocusedEntry = _currentFocused?.GetAncestor<NodeVarsValuePropertyEntry>();
             if (currFocusedEntry != null)
             {
                 int keyIndex = 0;
                 foreach (var key in Value.Keys)
                 {
-                    if (key != null && key.Equals(currFocusedEntry.CurrentKey))
+                    if (key != null && key.Equals(currFocusedEntry.Data.Name))
                         break;
                     keyIndex++;
                 }
@@ -127,39 +154,45 @@ namespace Fractural.StateScript
                 }
                 else
                 {
-                    var targetEntry = _keyValueEntriesVBox.GetChild<NodeVarsValuePropertyKeyValueEntry>(keyIndex);
+                    var targetEntry = _keyValueEntriesVBox.GetChild<NodeVarsValuePropertyEntry>(keyIndex);
                     _keyValueEntriesVBox.SwapChildren(targetEntry, currFocusedEntry);
                 }
             }
 
+            GD.Print("Updating prop 4, with Value: ", Value);
             foreach (string key in Value.Keys)
             {
-                NodeVarsValuePropertyKeyValueEntry entry;
+                GD.Print("\tkey: ", key);
+                NodeVarsValuePropertyEntry entry;
                 if (index >= childCount)
                     entry = CreateDefaultEntry();
                 else
-                    entry = _keyValueEntriesVBox.GetChild<NodeVarsValuePropertyKeyValueEntry>(index);
+                    entry = _keyValueEntriesVBox.GetChild<NodeVarsValuePropertyEntry>(index);
+                GD.Print("\tentry: ", entry);
 
                 if (currFocusedEntry == null || entry != currFocusedEntry)
-                    entry.SetKeyValue(key, Value.Get<NodePath>(key));
+                    entry.SetData(NodeVarData.FromGDDict(Value.Get<GDC.Dictionary>(key), key));
                 index++;
             }
 
+            GD.Print("Updating prop 5");
             // Free extra entries
             if (index < childCount)
             {
                 for (int i = childCount - 1; i >= index; i--)
                 {
-                    var entry = _keyValueEntriesVBox.GetChild<NodeVarsValuePropertyKeyValueEntry>(i);
-                    entry.KeyChanged -= OnDictKeyChanged;
-                    entry.ValueChanged -= OnDictValueChanged;
+                    var entry = _keyValueEntriesVBox.GetChild<NodeVarsValuePropertyEntry>(i);
+                    entry.NameChanged -= OnEntryNameChanged;
+                    entry.DataChanged -= OnEntryDataChanged;
                     entry.QueueFree();
                 }
             }
 
+            GD.Print("Updating prop 6");
             if (!IsInstanceValid(currFocusedEntry))
                 currFocusedEntry = null;
 
+            GD.Print("Updating prop 7");
             var nextKey = DefaultValueUtils.GetDefault(Value.Keys.Cast<string>());
         }
 
@@ -174,27 +207,29 @@ namespace Fractural.StateScript
             return property;
         }
 
-        private NodeVarsValuePropertyKeyValueEntry CreateDefaultEntry()
+        private NodeVarsValuePropertyEntry CreateDefaultEntry()
         {
-            var entry = new NodeVarsValuePropertyKeyValueEntry();
-            entry.KeyChanged += OnDictKeyChanged;
-            entry.ValueChanged += OnDictValueChanged;
-            entry.Deleted += OnDictKeyDeleted;
+            GD.Print("Create default entry");
+            var entry = new NodeVarsValuePropertyEntry(_sceneRoot, _relativeToNode, IsFixed);
+            entry.NameChanged += OnEntryNameChanged;
+            entry.DataChanged += OnEntryDataChanged;
+            entry.Deleted += OnEntryDeleted;
             // Add entry if we ran out of existing ones
             _keyValueEntriesVBox.AddChild(entry);
+            GD.Print("Create default entry finished");
 
             return entry;
         }
 
-        private void OnDictKeyChanged(string oldKey, NodeVarsValuePropertyKeyValueEntry entry)
+        private void OnEntryNameChanged(string oldKey, NodeVarsValuePropertyEntry entry)
         {
-            var newKey = entry.CurrentKey;
+            var newKey = entry.Data.Name;
             if (Value.Contains(newKey))
             {
                 // Revert CurrentKey back
-                entry.CurrentKey = oldKey;
+                entry.Data.Name = oldKey;
                 // Reject change since the newKey already exists
-                entry.KeyProperty.SetValue(oldKey);
+                entry.NameProperty.SetValue(oldKey);
                 return;
             }
             var currValue = Value[oldKey];
@@ -203,13 +238,13 @@ namespace Fractural.StateScript
             InvokeValueChanged(Value);
         }
 
-        private void OnDictValueChanged(object key, object newValue)
+        private void OnEntryDataChanged(object key, object newValue)
         {
             Value[key] = newValue;
             InvokeValueChanged(Value);
         }
 
-        private void OnDictKeyDeleted(object key)
+        private void OnEntryDeleted(object key)
         {
             Value.Remove(key);
             InvokeValueChanged(Value);

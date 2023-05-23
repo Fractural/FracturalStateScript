@@ -4,11 +4,8 @@ using GodotRollbackNetcode;
 
 namespace Fractural.StateScript
 {
-    public class Wait : Node, IStateScriptNode, INetworkProcess
+    public class Wait : State, INetworkProcess
     {
-        public string NodeType => "Wait";
-        public event System.Action Exited;
-
         [Export]
         public int DurationTicks { get; set; } = 5;
         [Export]
@@ -16,7 +13,7 @@ namespace Fractural.StateScript
         [Export]
         public bool IsRunning { get; private set; }
 
-        public void OnEnter()
+        public override void Play()
         {
             IsRunning = true;
             CurrentTicks = DurationTicks;
@@ -30,7 +27,7 @@ namespace Fractural.StateScript
                     CurrentTicks--;
                 else
                 {
-                    Exited?.Invoke();
+                    InvokeExited();
                     IsRunning = false;
                 }
             }

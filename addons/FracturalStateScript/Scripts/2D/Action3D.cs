@@ -6,7 +6,7 @@ using GDC = Godot.Collections;
 namespace Fractural.StateScript
 {
     [Tool]
-    public abstract class Action2D : Node2D, IAction
+    public abstract class Action3D : Spatial, IAction
     {
         /// <summary>
         /// Mapping of Names to NodePaths that lead to NodeVars.

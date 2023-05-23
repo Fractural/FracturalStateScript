@@ -13,6 +13,21 @@ namespace Tests
             set => SetNodeVar(nameof(Speed), value);
         }
 
+        [NodeVar(NodeVarOperation.Get)]
+        public float GetVelocity
+        {
+            get => GetNodeVar<float>(nameof(GetVelocity));
+            set => SetNodeVar(nameof(GetVelocity), value);
+        }
+
+
+        [NodeVar(NodeVarOperation.Set)]
+        public float SetState
+        {
+            get => GetNodeVar<float>(nameof(SetState));
+            set => SetNodeVar(nameof(SetState), value);
+        }
+
         private bool _playing = false;
         private float _timer = 0;
         private const float Duration = 3f;
