@@ -6,40 +6,24 @@ using GDC = Godot.Collections;
 namespace Fractural.StateScript
 {
     [Tool]
-    public abstract class ValueNodeVar<T> : Dependency, IValueNodeVar
+    public abstract class ValueNodeVar<T> : Node, IValueNodeVar
     {
         public T InitialValue { get; private set; }
         [Export]
-        public T ValueTyped { get; private set; }
+        public T Value { get; private set; }
 
-        public object Value
-        {
-            get => ValueTyped;
-            set => ValueTyped = (T)value;
-        }
+        object ISetNodeVar.Value { set => Value = (T)value; }
+        object IGetNodeVar.Value => Value;
 
         public override void _Ready()
         {
-            InitialValue = ValueTyped;
+            InitialValue = Value;
             Reset();
         }
 
         public virtual void Reset()
         {
-            ValueTyped = InitialValue;
-        }
-
-        public override GDC.Array _GetPropertyList()
-        {
-            var builder = new PropertyListBuilder();
-            builder.AddItem(
-                name: nameof(DependencyPath),
-                type: Variant.Type.NodePath,
-                hint: PropertyHint.None,
-                hintString: HintString.DependencyPath,
-                usage: PropertyUsageFlags.Default
-            );
-            return builder.Build();
+            Value = InitialValue;
         }
     }
 }

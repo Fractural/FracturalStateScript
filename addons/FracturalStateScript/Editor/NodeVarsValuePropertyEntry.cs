@@ -19,6 +19,13 @@ namespace Fractural.StateScript
             public bool UseIconOnly { get; set; }
         }
 
+        private class OperationTypeData
+        {
+            public string Name { get; set; }
+            public NodeVarOperation Operation { get; set; }
+            public int Index { get; set; }
+        }
+
         /// <summary>
         /// NameChanged(string oldName, Entry entry)
         /// </summary>
@@ -57,6 +64,7 @@ namespace Fractural.StateScript
         private OptionButton _operationButton;
         private Button _deleteButton;
         private ValueTypeData[] _valueTypes;
+        private OperationTypeData[] _operationTypes;
 
         public NodeVarsValuePropertyEntry() { }
         public NodeVarsValuePropertyEntry(Node sceneRoot, Node relativeToNode, bool isFixed)
@@ -106,8 +114,100 @@ namespace Fractural.StateScript
             _valueTypeButton.SizeFlagsHorizontal = (int)SizeFlags.Fill;
             _valueTypeButton.ClipText = true;
             _valueTypeButton.Connect("item_selected", this, nameof(OnValueSelected));
+            _valueTypeButton.Disabled = IsFixed;
 
-            // TODO NOW: Move this to _Ready so icons are initialized.
+            _operationButton = new OptionButton();
+            _operationButton.SizeFlagsHorizontal = (int)SizeFlags.ExpandFill;
+            _operationButton.SizeFlagsStretchRatio = 0.6f;
+            _operationButton.ClipText = true;
+            _operationButton.Connect("item_selected", this, nameof(OnOperationSelected));
+            _operationButton.Disabled = IsFixed;
+
+            AddChild(NameProperty);
+            AddChild(_valueTypeButton);
+            AddChild(_operationButton);
+            AddChild(_nodePathProperty);
+
+            _deleteButton = new Button();
+            _deleteButton.Connect("pressed", this, nameof(OnDeletePressed));
+            AddChild(_deleteButton);
+            _deleteButton.Visible = !IsFixed;
+        }
+
+        public override void _Ready()
+        {
+            base._Ready();
+            if (NodeUtils.IsInEditorSceneTab(this))
+                return;
+            _deleteButton.Icon = GetIcon("Remove", "EditorIcons");
+
+            InitValueTypes();
+            InitOperationTypes();
+        }
+
+        public override void _Notification(int what)
+        {
+            if (what == NotificationPredelete)
+            {
+                NameProperty.ValueChanged -= OnNameChanged;
+                _nodePathProperty.ValueChanged -= OnNodePathChanged;
+            }
+        }
+
+        private void SetValueTypeValueDisplay(Type type)
+        {
+            var valueTypeData = _valueTypes.First(x => x.Type == type);
+            _valueTypeButton.Select(valueTypeData.Index);
+            if (valueTypeData.UseIconOnly)
+                _valueTypeButton.Text = "";
+        }
+
+        private void SetOperationsValueDisplay(NodeVarOperation operation)
+        {
+            var operationTypeData = _operationTypes.First(x => x.Operation == operation);
+            _operationButton.Select(operationTypeData.Index);
+        }
+
+        public void SetData(NodeVarData value)
+        {
+            Data = value;
+            SetValueTypeValueDisplay(value.ValueType);
+            SetOperationsValueDisplay(value.Operation);
+            NameProperty.SetValue(value.Name);
+            _nodePathProperty.SetValue(value.Path);
+        }
+
+        private void InitOperationTypes()
+        {
+            _operationTypes = new[] {
+                new OperationTypeData()
+                {
+                    Name = "Get/Set",
+                    Operation = NodeVarOperation.GetSet
+                },
+                new OperationTypeData() {
+                    Name = "Get",
+                    Operation = NodeVarOperation.Get
+                },
+                new OperationTypeData() {
+                    Name = "Set",
+                    Operation = NodeVarOperation.Set
+                },
+                new OperationTypeData() {
+                    Name = "Private",
+                    Operation = NodeVarOperation.Private
+                }
+            };
+            foreach (var type in _operationTypes)
+            {
+                var index = _operationButton.GetItemCount();
+                _operationButton.AddItem(type.Name);
+                type.Index = index;
+            }
+        }
+
+        private void InitValueTypes()
+        {
             _valueTypes = new[] {
                 new ValueTypeData() {
                     Name = "int",
@@ -146,72 +246,6 @@ namespace Fractural.StateScript
                 type.Index = currIndex;
                 _valueTypeButton.AddIconItem(type.Icon, type.Name);
             }
-
-            _operationButton = new OptionButton();
-            _operationButton.SizeFlagsHorizontal = (int)SizeFlags.ExpandFill;
-            _operationButton.SizeFlagsStretchRatio = 0.6f;
-            _operationButton.ClipText = true;
-            _operationButton.Connect("item_selected", this, nameof(OnOperationSelected));
-
-            var operationTypes = new[] { "Get/Set", "Get", "Set", "Private" };
-            foreach (var type in operationTypes)
-                _operationButton.AddItem(type);
-
-            AddChild(NameProperty);
-            AddChild(_valueTypeButton);
-            AddChild(_operationButton);
-            AddChild(_nodePathProperty);
-
-            _deleteButton = new Button();
-            _deleteButton.Connect("pressed", this, nameof(OnDeletePressed));
-            AddChild(_deleteButton);
-            _deleteButton.Visible = !IsFixed;
-        }
-
-        public override void _Ready()
-        {
-            base._Ready();
-            if (NodeUtils.IsInEditorSceneTab(this))
-                return;
-            _deleteButton.Icon = GetIcon("Remove", "EditorIcons");
-        }
-
-        public override void _Notification(int what)
-        {
-            if (what == NotificationPredelete)
-            {
-                NameProperty.ValueChanged -= OnNameChanged;
-                _nodePathProperty.ValueChanged -= OnNodePathChanged;
-            }
-        }
-
-        private void SetValueTypeValue(Type type)
-        {
-            var valueTypeData = _valueTypes.First(x => x.Type == type);
-            _valueTypeButton.Select(valueTypeData.Index);
-            if (valueTypeData.UseIconOnly)
-                _valueTypeButton.Text = "";
-        }
-
-        private void SetOperationsValue(NodeVarOperation operations)
-        {
-            if (operations == NodeVarOperation.GetSet)
-                _operationButton.Select(0);
-            else if (operations == NodeVarOperation.Get)
-                _operationButton.Select(1);
-            else if (operations == NodeVarOperation.Set)
-                _operationButton.Select(2);
-            else if (operations == NodeVarOperation.Private)
-                _operationButton.Select(3);
-        }
-
-        public void SetData(NodeVarData value)
-        {
-            Data = value;
-            SetValueTypeValue(value.ValueType);
-            SetOperationsValue(value.Operation);
-            NameProperty.SetValue(value.Name);
-            _nodePathProperty.SetValue(value.Path);
         }
 
         private void InvokeDataChanged() => DataChanged?.Invoke(Data.Name, Data.ToGDDict());
@@ -231,52 +265,16 @@ namespace Fractural.StateScript
 
         private void OnValueSelected(int index)
         {
-            var item = _valueTypeButton.GetItemText(index);
-            switch (item)
-            {
-                case "int":
-                    Data.ValueType = typeof(int);
-                    break;
-                case "float":
-                    Data.ValueType = typeof(float);
-                    break;
-                case "bool":
-                    Data.ValueType = typeof(bool);
-                    break;
-                case "Vector2":
-                    Data.ValueType = typeof(Vector2);
-                    break;
-                case "Vector3":
-                    Data.ValueType = typeof(Vector3);
-                    break;
-                default:
-                    Data.ValueType = ReflectionUtils.FindTypeFullName(item);
-                    break;
-            }
-            SetValueTypeValue(Data.ValueType);
+            Data.ValueType = _valueTypes.First(x => x.Index == index).Type;
+            SetValueTypeValueDisplay(Data.ValueType);
 
             InvokeDataChanged();
         }
 
         private void OnOperationSelected(int index)
         {
-            var operation = _operationButton.GetItemText(index);
-            switch (operation)
-            {
-                case "Get":
-                    Data.Operation = NodeVarOperation.Get;
-                    break;
-                case "Set":
-                    Data.Operation = NodeVarOperation.Set;
-                    break;
-                case "Get/Set":
-                    Data.Operation = NodeVarOperation.GetSet;
-                    break;
-                case "Private":
-                    Data.Operation = NodeVarOperation.Private;
-                    break;
-            }
-            SetOperationsValue(Data.Operation);
+            Data.Operation = _operationTypes.First(x => x.Index == index).Operation;
+            SetOperationsValueDisplay(Data.Operation);
 
             InvokeDataChanged();
         }
