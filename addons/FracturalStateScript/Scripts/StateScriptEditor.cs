@@ -12,7 +12,6 @@ namespace Fractural.StateScript
 
         public void Unload()
         {
-
         }
     }
 }

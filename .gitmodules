@@ -10,3 +10,7 @@
 	path = addons/FracturalInject
 	url = https://github.com/fractural/FracturalInject
 	branch = release
+[submodule "addons/FracturalNodeVars"]
+	path = addons/FracturalNodeVars
+	url = https://github.com/Fractural/FracturalNodeVars
+	branch = release

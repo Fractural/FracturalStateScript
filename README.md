@@ -52,29 +52,27 @@ Here's an example scene layout for a hypothetical `Movement` StateScript. Note t
 Note that this is only a view of the SceneTree for the Movement StateScript PackedScene. The actual wiring up of the nodes happens in the StateScript graph.
 
 ```
-NODE NAME:             NODE TYPE:
+NODE NAME:            NODE TYPE:          NODE VARS:
 
-Movement            -> StateScript
-|- Dependencies     -> Node
-| |- Target         -> NodeVar Set     '.
-| |- SprintSpeed    -> NodeVar Set      |
-| |- JumpPower      -> NodeVar Set      |- Node Variables
-| |- Drag           -> NodeVar Set      |
-| |- Velocity       -> NodeVar Get      |
-| '- InternalVar    -> NodeVar Private .'
-|- AddForce         -> StateScript '.           '.
-| |- Dependencies   -> Node         |- Subgraph  |
-| | '- ForceAmount  -> NodeVar Set  |            |
-| '- WaitState      -> State       .'            |
-|- SetVarAction     -> Action                    | - The Movement StateScript's nodes 
-'- SetVarAction2    -> Action                   .'
+Movement           -> StateScript
+|                     |- Target        -> Set     '.
+|                     |- SprintSpeed   -> Set      |
+|                     |- JumpPower     -> Set      |- Node Variables
+|                     |- Drag          -> Set      |
+|                     |- Velocity      -> Get      |
+|                     '- InternalVar   -> Private .'
+|- AddForce        -> StateScript                 '.
+| |                   '- ForceAmount   -> Set      | - Subgraph
+| '- WaitState     -> State                       .'
+|- SetVarAction    -> Action
+'- SetVarAction2   -> Action
 ```
 
 ## TODO
 
 - [ ] Finish the core StateScript functionality
 - [ ] Add rollback to StateScript
-- [ ] Maybe make a single NodeVarContainer node per StateScript and have that store all the NodeVars as data within the NodeVarContainer. 
+- [X] Maybe make a single NodeVarContainer node per StateScript and have that store all the NodeVars as data within the NodeVarContainer. 
   - Pros
     - This would reduce the amount of nodes per scene, potentially leading to performance gains?
   - Cons
@@ -82,3 +80,6 @@ Movement            -> StateScript
     - Requires more work to make a custom inspector for the NodeVarContainer as well as for scripts that need to use NodeVars. You can no longer just export a NodePath to received a NodeVar — you must have some sort of custom solution implemented instead.
       - How do you handle NodeVar renaming if it's not stored as a Node? Godot normally preserves NodePath references to a Node if the Node is renamed. But if we have our own NodeVarContainer, we'd have to make sure renames propagate.
       - We'd have to access dependencies of the StateScript PackedScene, and then try to rename the uses of the variable there — might get complicated.
+  - WIP
+- [ ] Make the NodeVars dictionary injectable by FracturalInject
+  - Maybe even rework Dependencies to use the NodeVar container.
