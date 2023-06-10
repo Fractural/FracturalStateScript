@@ -10,28 +10,19 @@ script = ExtResource( 1 )
 __meta__ = {
 "NodeVars/visible": true
 }
-NodeVars = {
-"GetVelocity": {
-"Operation": 0,
-"Path": NodePath(""),
-"ValueType": "System.Single"
-},
-"SetState": {
-"Operation": 1,
-"Path": NodePath(""),
-"ValueType": "System.Single"
-},
-"Speed": {
-"Operation": 2,
-"Path": NodePath(""),
-"ValueType": "System.Int32"
-}
-}
 
 [node name="Node" type="Node" parent="MovementState"]
 script = ExtResource( 2 )
 __meta__ = {
 "NodeVars/visible": true
 }
-NodeVars = {
+_nodeVars = {
+}
+
+[node name="MovementState2" type="Node2D" parent="."]
+script = ExtResource( 1 )
+
+[node name="Wait" type="Node" parent="."]
+script = ExtResource( 2 )
+_nodeVars = {
 }

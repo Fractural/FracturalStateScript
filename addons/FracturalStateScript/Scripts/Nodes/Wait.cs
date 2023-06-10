@@ -1,17 +1,39 @@
-﻿using Godot;
+﻿using Fractural.NodeVars;
+using Godot;
 using Godot.Collections;
 using GodotRollbackNetcode;
 
 namespace Fractural.StateScript
 {
+    [Tool]
     public class Wait : State, INetworkProcess
     {
-        [Export]
-        public int DurationTicks { get; set; } = 5;
-        [Export]
-        public int CurrentTicks { get; private set; } = 0;
-        [Export]
-        public bool IsRunning { get; private set; }
+        [NodeVar]
+        public int DurationTicks { get => GetDictNodeVar<int>(nameof(DurationTicks)); }
+
+        private int _currentTicks;
+        [NodeVar(NodeVarOperation.Get)]
+        public int CurrentTicks
+        {
+            get => _currentTicks;
+            private set
+            {
+                _currentTicks = value;
+                SetDictNodeVar(nameof(CurrentTicks), value);
+            }
+        }
+
+        private bool _isRunning;
+        [NodeVar(NodeVarOperation.Get)]
+        public bool IsRunning
+        {
+            get => _isRunning;
+            private set
+            {
+                _isRunning = value;
+                SetDictNodeVar(nameof(IsRunning), value);
+            }
+        }
 
         public override void Play()
         {
@@ -23,8 +45,8 @@ namespace Fractural.StateScript
         {
             if (IsRunning)
             {
-                if (CurrentTicks > DurationTicks)
-                    CurrentTicks--;
+                if (_currentTicks > DurationTicks)
+                    _currentTicks--;
                 else
                 {
                     InvokeExited();

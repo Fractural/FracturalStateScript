@@ -1,4 +1,5 @@
-﻿using GDC = Godot.Collections;
+﻿using Fractural.NodeVars;
+using GDC = Godot.Collections;
 
 namespace Fractural.StateScript
 {
@@ -13,9 +14,8 @@ namespace Fractural.StateScript
         void Reset();
     }
 
-    public interface IAction
+    public interface IAction : INodeVarContainer
     {
-        GDC.Dictionary NodeVars { get; set; }
         void Play();
     }
 }

@@ -36,8 +36,6 @@ namespace Fractural.StateScript
 
             editorSelection = GetEditorInterface().GetSelection();
             //editorSelection.Connect("selection_changed", this, nameof(OnEditorSelectionSelectionChanged));
-
-            AddManagedInspectorPlugin(new ActionInspectorPlugin(this));
         }
 
         protected override void Unload()

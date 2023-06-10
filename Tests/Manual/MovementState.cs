@@ -1,3 +1,4 @@
+using Fractural.NodeVars;
 using Fractural.StateScript;
 using Godot;
 using System;
@@ -9,23 +10,23 @@ namespace Tests
         [NodeVar]
         public float Speed
         {
-            get => GetNodeVar<float>(nameof(Speed));
-            set => SetNodeVar(nameof(Speed), value);
+            get => GetDictNodeVar<float>(nameof(Speed));
+            set => SetDictNodeVar(nameof(Speed), value);
         }
 
         [NodeVar(NodeVarOperation.Get)]
         public float GetVelocity
         {
-            get => GetNodeVar<float>(nameof(GetVelocity));
-            set => SetNodeVar(nameof(GetVelocity), value);
+            get => GetDictNodeVar<float>(nameof(GetVelocity));
+            set => SetDictNodeVar(nameof(GetVelocity), value);
         }
 
 
         [NodeVar(NodeVarOperation.Set)]
         public float SetState
         {
-            get => GetNodeVar<float>(nameof(SetState));
-            set => SetNodeVar(nameof(SetState), value);
+            get => GetDictNodeVar<float>(nameof(SetState));
+            set => SetDictNodeVar(nameof(SetState), value);
         }
 
         private bool _playing = false;

@@ -32,7 +32,7 @@ _global_script_class_icons={
 
 [FracturalCommons]
 
-Main/GenerateVersionPreprocessorDefines=false
+Main/GenerateVersionPreprocessorDefines=true
 "C# Resource Registry/ClassPrefix"=""
 "C# Resource Registry/SearchType"=0
 "C# Resource Registry/ResourceScriptDirectories"=[ "res://" ]
@@ -49,7 +49,7 @@ SyncManager="*res://addons/godot-rollback-netcode/SyncManager.gd"
 
 [editor_plugins]
 
-enabled=PoolStringArray( "res://addons/FracturalCommons/plugin.cfg", "res://addons/FracturalInject/plugin.cfg", "res://addons/FracturalStateScript/plugin.cfg", "res://addons/editor_icon_previewer/plugin.cfg", "res://addons/godot-rollback-netcode/plugin.cfg" )
+enabled=PoolStringArray( "res://addons/FracturalCommons/plugin.cfg", "res://addons/FracturalInject/plugin.cfg", "res://addons/FracturalNodeVars/plugin.cfg", "res://addons/FracturalStateScript/plugin.cfg", "res://addons/editor_icon_previewer/plugin.cfg", "res://addons/godot-rollback-netcode/plugin.cfg" )
 
 [gui]
 
