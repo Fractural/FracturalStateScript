@@ -19,25 +19,12 @@ namespace Fractural.StateScript
             private set
             {
                 _currentTicks = value;
-                SetDictNodeVar(nameof(CurrentTicks), value);
+                SetNodeVar(nameof(CurrentTicks), value);
             }
         }
 
-        private bool _isRunning;
-        [NodeVar(NodeVarOperation.Get)]
-        public bool IsRunning
+        protected override void _Play()
         {
-            get => _isRunning;
-            private set
-            {
-                _isRunning = value;
-                SetDictNodeVar(nameof(IsRunning), value);
-            }
-        }
-
-        public override void Play()
-        {
-            IsRunning = true;
             CurrentTicks = DurationTicks;
         }
 
@@ -48,10 +35,7 @@ namespace Fractural.StateScript
                 if (_currentTicks > DurationTicks)
                     _currentTicks--;
                 else
-                {
-                    InvokeExited();
-                    IsRunning = false;
-                }
+                    Stop();
             }
         }
     }

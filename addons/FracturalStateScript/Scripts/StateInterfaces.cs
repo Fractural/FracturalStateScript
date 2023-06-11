@@ -1,4 +1,6 @@
 ﻿using Fractural.NodeVars;
+using Godot;
+using GodotRollbackNetcode;
 using GDC = Godot.Collections;
 
 namespace Fractural.StateScript
@@ -11,10 +13,13 @@ namespace Fractural.StateScript
     public interface IState : IAction
     {
         event System.Action Exited;
-        void Reset();
+        void Stop();
+        void StatePreProcess();
+        void StateProcess();
+        void StatePostProcess();
     }
 
-    public interface IAction : INodeVarContainer
+    public interface IAction : INodeVarContainer, INetworkSerializable
     {
         void Play();
     }

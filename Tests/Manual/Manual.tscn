@@ -10,6 +10,7 @@ script = ExtResource( 1 )
 __meta__ = {
 "NodeVars/visible": true
 }
+_nodeVars = null
 
 [node name="Node" type="Node" parent="MovementState"]
 script = ExtResource( 2 )
@@ -21,8 +22,16 @@ _nodeVars = {
 
 [node name="MovementState2" type="Node2D" parent="."]
 script = ExtResource( 1 )
+__meta__ = {
+"_nodeVars/visible": true
+}
+_nodeVars = {
+}
 
 [node name="Wait" type="Node" parent="."]
 script = ExtResource( 2 )
+__meta__ = {
+"_nodeVars/visible": true
+}
 _nodeVars = {
 }

@@ -5,28 +5,29 @@ using System;
 
 namespace Tests
 {
+    [Tool]
     public class MovementState : State2D
     {
         [NodeVar]
         public float Speed
         {
-            get => GetDictNodeVar<float>(nameof(Speed));
-            set => SetDictNodeVar(nameof(Speed), value);
+            get => this.GetNodeVar<float>(nameof(Speed));
+            set => SetNodeVar(nameof(Speed), value);
         }
 
         [NodeVar(NodeVarOperation.Get)]
         public float GetVelocity
         {
-            get => GetDictNodeVar<float>(nameof(GetVelocity));
-            set => SetDictNodeVar(nameof(GetVelocity), value);
+            get => this.GetNodeVar<float>(nameof(GetVelocity));
+            set => SetNodeVar(nameof(GetVelocity), value);
         }
 
 
         [NodeVar(NodeVarOperation.Set)]
         public float SetState
         {
-            get => GetDictNodeVar<float>(nameof(SetState));
-            set => SetDictNodeVar(nameof(SetState), value);
+            get => this.GetNodeVar<float>(nameof(SetState));
+            set => SetNodeVar(nameof(SetState), value);
         }
 
         private bool _playing = false;
