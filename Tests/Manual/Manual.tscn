@@ -8,24 +8,35 @@
 [node name="MovementState" type="Node2D" parent="."]
 script = ExtResource( 1 )
 __meta__ = {
-"NodeVars/visible": true
-}
-_nodeVars = null
-
-[node name="Node" type="Node" parent="MovementState"]
-script = ExtResource( 2 )
-__meta__ = {
-"NodeVars/visible": true
+"NodeVars/visible": true,
+"_nodeVars/visible": true
 }
 _nodeVars = {
 }
 
-[node name="MovementState2" type="Node2D" parent="."]
+[node name="Node" type="Node" parent="MovementState"]
+script = ExtResource( 2 )
+__meta__ = {
+"NodeVars/visible": true,
+"_nodeVars/visible": true
+}
+_nodeVars = {
+}
+
+[node name="MovementState2" type="Node2D" parent="MovementState"]
 script = ExtResource( 1 )
 __meta__ = {
 "_nodeVars/visible": true
 }
 _nodeVars = {
+"SetState": {
+"ContainerPath": NodePath(".."),
+"ContainerVarName": "SetState",
+"InitialValue": 0.0,
+"Operation": 1,
+"Type": "DynamicNodeVarData",
+"ValueType": "System.Single"
+}
 }
 
 [node name="Wait" type="Node" parent="."]

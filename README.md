@@ -1,6 +1,6 @@
 # Fractural State Script 📜
 
-Fratural State Script is a Godot 3.x C# addon that adds state scripts into Godot. This is based off of Overwatch's implementation.
+Fratural State Script is a Godot 3.x C# addon that adds state scripts into Godot. This is inspired by Overwatch's implementation.
 
 See Dan Reed's GDC talk on [Networking Scripted Weapons and Abilities in Overwatch](https://www.youtube.com/watch?v=5jP0z7Atww4&t=553s).
 
@@ -19,9 +19,11 @@ A StateScript graph is stored as a node in the scene, and StateScript nodes are 
 
 Each node is implemented in C# by the user, and should represent simple behaviours, such as waiting, shooting, etc. StateScript provides lifetime guarantees. This means each node cleans up after itself, including when the state is rolled back.
 
+State scripts alsxo ideally should avoid loops for easier clarity. Instead, looping should be done through nodes that fire repeatedly and then end.
+
 Types of Nodes
 
-- Entry - An entry into the StateScript. A StateScript can have multiple entry point
+- Entry - An entry into the StateScript. A StateScript can have multiple entry points. Entry points can also be named, and will create a separate input slot in the StateScript when it's used as a subgraph.
 - State - Node that does something over time, such as waiting, etc.
 - Action - Node that does something immediately.
 - Exit - A node that exits the StateScript. This node will become an output point if this
@@ -43,10 +45,6 @@ There are four types of NodeVars
 #### Expression NodeVar
 
 Expression NodeVars are a unique type of Get NodeVar that lets the user input an expression, along with a list of NodeVars that are used as variables within the expression. Every time something attempts to "fetch" this Expression NodeVar, the expression is evaluated and the result is returned.
-
-### State Machines
-
-You can use a StateScript itself as a state machine. Each "state" in the state machine can be defined as a subgraph in a StateScript.
 
 ## Example
 
@@ -70,6 +68,28 @@ Movement           -> StateScript
 |- SetVarAction    -> Action
 '- SetVarAction2   -> Action
 ```
+
+## State Machines
+
+You can use a StateScript itself as a state machine. Each "state" in the state machine can be defined as a subgraph in a StateScript. But since it's really easy for complicated state machines to experience [state explosion](https://statecharts.dev/state-machine-state-explosion.html), we can instead use a tree-like structure for state machines, similar to how the [Beehave addon](https://statecharts.dev/state-machine-state-explosion.html) works.
+
+![State machine](readme/StateMachine.png)
+
+`StateMachineState` nodes reprsent individual states within the state machine. These nodes must have a unique name to distinguish themselves amongst other states within the same state machine. They also have various lifecycle outputs, such as
+
+- OnStart - Runs when the state becomes active
+- OnTick - Runs on every tick when this state is active
+- OnEnd - Runs when the state machine transitions out of this state
+
+Thesse outputs can be linked to subgraphs that represent behaviours.
+
+`StateMachine` nodes represent state machines. A `StateMachineState` node have multiple `StateMachineState` node branching out of it, and at any given point it can only have one active `StateMachineState` node. The active state node will have it's `OnTick` input fired.
+
+`StateMachineTransition` transitions a `StateMachine` to a different state. These transition nodes appear at the end of the subgraphs of a `StateMachineState`, and mark the end of a state.
+
+![State machine with connections](readme/StateMachineWithConnection.png)
+
+Here's the same state machine but with transitions indicated by arrows marked in red. If we had not used as tree-like structure, we would have gotten the sphagetti mess of transitions connecting states, looping back and forth and ultimately making it harder to trace.
 
 ## TODO
 
