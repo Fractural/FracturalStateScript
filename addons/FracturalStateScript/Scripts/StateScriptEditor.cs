@@ -35,36 +35,41 @@ namespace Fractural.StateScript
         public StateScriptEditor() { }
         public StateScriptEditor(IAssetsRegistry assetsRegistry)
         {
+            RectMinSize = new Vector2(0, 200 * assetsRegistry.Scale);
+
             _assetsRegistry = assetsRegistry;
 
             _graphEdit = new GraphEdit();
             AddChild(_graphEdit);
             _graphEdit.SetAnchorsAndMarginsPreset(LayoutPreset.Wide);
+            _graphEdit.Connect("connection_request", this, nameof(OnGraphEditConnectionRequest));
 
             var marginContainer = new MarginContainer();
             int margin = (int)(16 * _assetsRegistry.Scale);
             marginContainer.AddConstantOverride("margin_right", margin);
             marginContainer.AddConstantOverride("margin_top", margin);
+            marginContainer.MouseFilter = MouseFilterEnum.Ignore;
             AddChild(marginContainer);
             marginContainer.SetAnchorsAndMarginsPreset(LayoutPreset.Wide);
 
             _variableLabel = new Label();
             _variableLabel.SizeFlagsHorizontal = (int)SizeFlags.ExpandFill;
-            _variableLabel.SizeFlagsVertical = (int)SizeFlags.ExpandFill;
+            _variableLabel.SizeFlagsVertical = (int)SizeFlags.ExpandFill; ;
+            _variableLabel.MouseFilter = MouseFilterEnum.Ignore;
 
             marginContainer.AddChild(_variableLabel);
-
-            _graphEdit.Connect("connection_request", this, nameof(OnGraphEditConnectionRequest));
 
             StateTypes = Assembly.GetExecutingAssembly().GetTypes().Where(x => !x.IsAbstract && x.IsAssignableFrom(typeof(IAction)) && x.IsAssignableFrom(typeof(Node)) && x != typeof(StateGraph)).ToArray();
 
             _popupOverlayRect = new ColorRect();
-            _popupOverlayRect.Color = new Color(Colors.Black, 0.75f);
+            _popupOverlayRect.Color = new Color(Colors.Black, 0.5f);
+            _popupOverlayRect.Visible = false;
             AddChild(_popupOverlayRect);
             _popupOverlayRect.SetAnchorsAndMarginsPreset(LayoutPreset.Wide);
 
             _stateSearchDialog = new SearchDialog();
             _stateSearchDialog.Connect(nameof(SearchDialog.EntrySelected), this, nameof(OnStateSearchEntrySelected));
+            _stateSearchDialog.Connect("popup_hide", this, nameof(OnStateSearchDialogHide));
             _stateSearchDialog.SearchEntries = StateTypes.Select(x => new SearchEntry()
             {
                 Text = x.FullName
@@ -78,7 +83,7 @@ namespace Fractural.StateScript
                 Shortcut = new InputEventKey()
                 {
                     Control = true,
-                    PhysicalScancode = (int)KeyList.A
+                    PhysicalScancode = (int)KeyList.B,
                 }
             };
             _createStateButton.Connect("pressed", this, nameof(OnCreateStateButtonPressed));
@@ -92,18 +97,6 @@ namespace Fractural.StateScript
             if (NodeUtils.IsInEditorSceneTab(this)) return;
 
             GD.Print("Instanced!");
-        }
-
-        private void OnCreateStateButtonPressed()
-        {
-            _stateSearchDialog.Popup_(GetGlobalRect().AddPadding(-10 * _assetsRegistry.Scale));
-        }
-
-        private void OnStateSearchEntrySelected(string stateTypeName)
-        {
-            var stateType = StateTypes.FirstOrDefault(x => x.FullName == stateTypeName);
-            var stateInstance = Activator.CreateInstance(stateType) as Node;
-            _graphEdit.AddChild(stateInstance);
         }
 
         public void Load(IStateGraph stateGraph)
@@ -205,6 +198,26 @@ namespace Fractural.StateScript
                     RawStateGraph.StateNodePositions[child.Name] = graphNode.RectPosition;
             }
             RawStateGraph.RawConnections = StateScriptUtils.ConnectionListDictToGDDict(StateGraphNode, StateToConnectionsDict);
+        }
+
+        private void OnStateSearchDialogHide()
+        {
+            _popupOverlayRect.Visible = false;
+        }
+
+        private void OnCreateStateButtonPressed()
+        {
+            _popupOverlayRect.Visible = true;
+            var globalRectSize = GetGlobalRect().Size;
+            var smallestSize = globalRectSize.x > globalRectSize.y ? globalRectSize.y : globalRectSize.x;
+            _stateSearchDialog.Popup_(GetGlobalRect().AddPadding(-smallestSize * 0.25f * _assetsRegistry.Scale));
+        }
+
+        private void OnStateSearchEntrySelected(string stateTypeName)
+        {
+            var stateType = StateTypes.FirstOrDefault(x => x.FullName == stateTypeName);
+            var stateInstance = Activator.CreateInstance(stateType) as Node;
+            _graphEdit.AddChild(stateInstance);
         }
 
         private void OnNodeAdded(Node node)

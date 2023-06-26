@@ -40,6 +40,7 @@ namespace Fractural.StateScript
         protected override void Unload()
         {
             AssetsRegistry = null;
+            HideStateScriptEditor();
             stateScriptEditor.QueueFree();
 
             editorSelection = GetEditorInterface().GetSelection();
