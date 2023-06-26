@@ -8,6 +8,10 @@ namespace Fractural.StateScript
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     public class InputAttribute : Attribute
     {
-        public InputAttribute() { }
+        public string Name { get; set; }
+        public InputAttribute(string name = null)
+        {
+            Name = name;
+        }
     }
 }

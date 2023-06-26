@@ -8,6 +8,10 @@ namespace Fractural.StateScript
     [AttributeUsage(AttributeTargets.Event, AllowMultiple = false)]
     public class OutputAttribute : Attribute
     {
-        public OutputAttribute() { }
+        public string Name { get; set; }
+        public OutputAttribute(string name = null)
+        {
+            Name = name;
+        }
     }
 }

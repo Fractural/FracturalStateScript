@@ -1,9 +1,7 @@
 ﻿using Fractural.NodeVars;
 using Fractural.Utils;
 using Godot;
-using Godot.Collections;
 using GodotRollbackNetcode;
-using System.Collections.Generic;
 using GDC = Godot.Collections;
 
 namespace Fractural.StateScript
@@ -13,18 +11,19 @@ namespace Fractural.StateScript
     {
         public override HintString.DictNodeVarsMode Mode { get => HintString.DictNodeVarsMode.Attributes; set { } }
 
-        public abstract void Play();
+        [Output("Out")]
+        public event System.Action Exited;
 
-        // TODO: Refactor RollbackNetcodePlugin to use pure C# serialization if performance is an issue.
-        public virtual void _LoadState(GDC.Dictionary state)
+        [Input("In")]
+        public virtual void Play()
         {
-            var nodeVarsDict = state.Get<GDC.Dictionary>(nameof(NodeVars));
-            foreach (string key in nodeVarsDict.Keys)
-            {
-                var serializableNodeVar = NodeVars[key] as ISerializableNodeVar;
-                serializableNodeVar.Load(nodeVarsDict[key]);
-            }
+            _Play();
+            InvokeExited();
         }
+
+        protected virtual void _Play() { }
+
+        protected void InvokeExited() => Exited?.Invoke();
 
         public virtual GDC.Dictionary _SaveState()
         {
@@ -32,9 +31,20 @@ namespace Fractural.StateScript
 
             var nodeVarsDict = new GDC.Dictionary();
             foreach (var nodeVar in NodeVars.Values)
-                if (nodeVar is ISerializableNodeVar serializableNodeVar)
-                    nodeVarsDict[nodeVar.Name] = serializableNodeVar.Save();
+                if (nodeVar.Strategy is ISerializableNodeVarStrategy serializableNodeVarStrategy)
+                    nodeVarsDict[nodeVar.Name] = serializableNodeVarStrategy.Save();
             return dict;
+        }
+
+        // TODO: Refactor RollbackNetcodePlugin to use pure C# serialization if performance is an issue.
+        public virtual void _LoadState(GDC.Dictionary state)
+        {
+            var nodeVarsDict = state.Get<GDC.Dictionary>(nameof(NodeVars));
+            foreach (string key in nodeVarsDict.Keys)
+            {
+                var serializableNodeVarStrategy = NodeVars[key].Strategy as ISerializableNodeVarStrategy;
+                serializableNodeVarStrategy?.Load(nodeVarsDict[key]);
+            }
         }
     }
 }

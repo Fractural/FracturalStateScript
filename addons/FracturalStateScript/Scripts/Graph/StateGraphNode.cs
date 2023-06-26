@@ -9,10 +9,6 @@ namespace Fractural.StateScript
         {
             BorderColor = new Color("#ba5414");
             Title = "State";
-            AddSlotLeft("In");
-            AddSlotLeft("Abort");
-            AddSlotRight("OnBegin");
-            AddSlotRight("OnFinish");
             base._Ready();
         }
     }

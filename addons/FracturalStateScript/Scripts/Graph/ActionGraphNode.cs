@@ -8,16 +8,11 @@ namespace Fractural.StateScript
     {
         public override void _Ready()
         {
-            BorderColor = new Color("#ba1414");
+            BorderColor = new Color("#ba7214");
             Title = "Action";
             AddSlotLeft("In");
             AddSlotRight("Out");
             base._Ready();
         }
-
-        //public Action Serialize()
-        //{
-        //    return new Action() { };
-        //}
     }
 }

@@ -11,13 +11,12 @@ namespace Fractural.StateScript
 {
     // TODO: Test StateGraph2D
     [Tool]
-    public class StateGraph2D : State2D
+    public class StateGraph : State, IStateGraph, IRawStateGraph
     {
-        [Export]
-        private GDC.Dictionary _connections;
+        public GDC.Dictionary StateNodePositions { get; set; }
+        public GDC.Dictionary RawConnections { get; set; }
 
-
-        private IAction[] _states;
+        public IAction[] States { get; private set; }
         public HashSet<IState> CurrentContinuousStates { get; private set; }
 
         public Entry[] EntryStates { get; private set; }
@@ -30,28 +29,13 @@ namespace Fractural.StateScript
             if (NodeUtils.IsInEditorSceneTab(this))
                 return;
 #endif
-            _states = GetChildren().Cast<Node>().Where(x => x is IAction).Cast<IAction>().ToArray();
-            EntryStates = _states.Where(x => x is Entry).Cast<Entry>().ToArray();
-            ExitStates = new HashSet<Exit>(_states.Where(x => x is Exit).Cast<Exit>());
+            States = GetChildren().Cast<Node>().Where(x => x is IAction).Cast<IAction>().ToArray();
+            EntryStates = States.Where(x => x is Entry).Cast<Entry>().ToArray();
+            ExitStates = new HashSet<Exit>(States.Where(x => x is Exit).Cast<Exit>());
             CurrentContinuousStates = new HashSet<IState>();
-            StateToConnectionsDict = new Dictionary<IAction, StateNodeConnection[]>();
-            foreach (NodePath statePath in _connections.Keys)
-            {
-                var from = GetNode<IAction>(statePath);
-                var connectionsGDCArray = _connections.Get<GDC.Array>(statePath);
-                var connectionsArray = new StateNodeConnection[connectionsGDCArray.Count];
-                int i = 0;
-                foreach (GDC.Dictionary connectionDict in connectionsGDCArray)
-                {
-                    var connection = new StateNodeConnection();
-                    connection.FromGDDict(connectionDict, from as Node);
-                    connectionsArray[i] = connection;
-                    i++;
-                }
-                StateToConnectionsDict[from] = connectionsArray;
-            }
+            StateToConnectionsDict = StateScriptUtils.ConnectionArrayDictFromGDDict(this, RawConnections);
 
-            foreach (var state in _states)
+            foreach (var state in States)
             {
                 if (state is IState continuousState)
                     continuousState.Exited += () => ExitState(continuousState);
@@ -71,19 +55,19 @@ namespace Fractural.StateScript
                     var fromEvent = state.GetType().GetEvent(connection.FromEvent);
                     if (fromEvent == null)
                     {
-                        GD.PrintErr($"{nameof(StateGraph2D)} [{Filename}]: Could not find fromEvent for connection {connection}");
+                        GD.PrintErr($"{nameof(StateGraph)} [{Filename}]: Could not find fromEvent for connection {connection}");
                         continue;
                     }
                     var toState = connection.ToState;
                     if (toState == null)
                     {
-                        GD.PrintErr($"{nameof(StateGraph2D)} [{Filename}]: Could not find toState for connection {connection}");
+                        GD.PrintErr($"{nameof(StateGraph)} [{Filename}]: Could not find toState for connection {connection}");
                         continue;
                     }
                     var toMethod = state.GetType().GetMethod(connection.ToMethod);
                     if (toMethod == null)
                     {
-                        GD.PrintErr($"{nameof(StateGraph2D)} [{Filename}]: Could not find toMethod for connection {connection}");
+                        GD.PrintErr($"{nameof(StateGraph)} [{Filename}]: Could not find toMethod for connection {connection}");
                         continue;
                     }
                     fromEvent.AddEventHandler(toState, (Action)(() => TransitionToState(toState, toMethod)));
@@ -102,22 +86,22 @@ namespace Fractural.StateScript
         protected override void _Stop()
         {
             // Reset all variables.
-            foreach (var nodeVar in _nodeVars)
+            foreach (var nodeVar in NodeVars.Values)
             {
-                if (nodeVar is DynamicNodeVarData dynamicNodeVar)
-                    dynamicNodeVar.Reset();
+                if (nodeVar.Strategy is IResetNodeVarStrategy resettable)
+                    resettable.Reset();
             }
         }
 
         private void ExitState(IState exited)
         {
-            GD.Print($"{nameof(StateGraph2D)} [{Filename}]: State exited: \"{(exited as Node)?.Name}\"");
+            GD.Print($"{nameof(StateGraph)} [{Filename}]: State exited: \"{(exited as Node)?.Name}\"");
             CurrentContinuousStates.Remove(exited);
         }
 
         private void TransitionToState(IAction to, MethodInfo toMethod)
         {
-            GD.Print($"{nameof(StateGraph2D)} [{Filename}]: Transitioned to ", (to as Node).Name);
+            GD.Print($"{nameof(StateGraph)} [{Filename}]: Transitioned to ", (to as Node).Name);
             if (to is IState continuousState)
                 CurrentContinuousStates.Add(continuousState);
             toMethod.Invoke(to, null);
@@ -139,6 +123,22 @@ namespace Fractural.StateScript
         {
             foreach (var state in CurrentContinuousStates)
                 state.StatePostProcess();
+        }
+
+        public override GDC.Array _GetPropertyList()
+        {
+            var builder = new PropertyListBuilder();
+            builder.AddItem(
+                name: nameof(RawConnections),
+                type: Variant.Type.Dictionary,
+                usage: PropertyUsageFlags.Noeditor
+            );
+            builder.AddItem(
+                name: nameof(StateNodePositions),
+                type: Variant.Type.Dictionary,
+                usage: PropertyUsageFlags.Noeditor
+            );
+            return builder.Build();
         }
     }
 }

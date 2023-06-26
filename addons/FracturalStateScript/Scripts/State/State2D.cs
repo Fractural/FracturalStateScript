@@ -16,21 +16,33 @@ namespace Fractural.StateScript
             }
         }
 
-        public event System.Action Exited;
+        [Output]
+        public event System.Action Begin;
+        [Output]
+        public event System.Action Aborted;
+
         public override void Play()
         {
             IsRunning = true;
             _Play();
+            InvokeBegin();
         }
+
+        [Input]
         public virtual void Stop()
         {
             _Stop();
+            bool aborted = IsRunning;
             IsRunning = false;
-            InvokeExited();
+            if (aborted)
+                InvokeAborted();
+            else
+                InvokeExited();
         }
-        protected virtual void _Play() { }
+
         protected virtual void _Stop() { }
-        protected void InvokeExited() => Exited?.Invoke();
+        protected void InvokeBegin() => Begin?.Invoke();
+        protected void InvokeAborted() => Aborted?.Invoke();
         public virtual void StatePreProcess() { }
         public virtual void StateProcess() { }
         public virtual void StatePostProcess() { }

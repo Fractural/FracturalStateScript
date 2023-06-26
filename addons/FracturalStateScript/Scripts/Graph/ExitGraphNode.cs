@@ -3,19 +3,19 @@
 namespace Fractural.StateScript
 {
     [Tool]
-    public class EntryGraphNode : StateScriptGraphNode
+    public class ExitGraphNode : StateScriptGraphNode
     {
         public override void _Ready()
         {
-            BorderColor = new Color("#4e9c2d");
-            Title = "Entry";
+            BorderColor = new Color("#ba1414");
+            Title = "Exit";
             base._Ready();
         }
 
         public override void UpdateState(IAction newState)
         {
             base.UpdateState(newState);
-            RemoveSlotLeft(0); // Remove the input slot for Entry node
+            RemoveSlotRight(0); // Remove the output slot for Exit node
         }
     }
 }

@@ -40,7 +40,6 @@ Main/GenerateVersionPreprocessorDefines=true
 [application]
 
 config/name="FracturalStateScript"
-run/main_scene="res://addons/FracturalStateScript/StateScriptEditor.tscn"
 config/icon="res://icon.png"
 
 [autoload]

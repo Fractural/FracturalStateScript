@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=2]
+[gd_scene load_steps=4 format=2]
 
 [ext_resource path="res://Tests/Manual/MovementState.cs" type="Script" id=1]
 [ext_resource path="res://addons/FracturalStateScript/Scripts/Nodes/Wait.cs" type="Script" id=2]
+[ext_resource path="res://addons/FracturalStateScript/Scripts/State/StateGraph.cs" type="Script" id=3]
 
 [node name="Manual" type="Node"]
 
@@ -46,3 +47,7 @@ __meta__ = {
 }
 _nodeVars = {
 }
+
+[node name="StateGraph2D" type="Node2D" parent="."]
+script = ExtResource( 3 )
+_nodeVars = null

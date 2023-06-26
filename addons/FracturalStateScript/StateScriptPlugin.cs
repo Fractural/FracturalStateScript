@@ -1,4 +1,5 @@
 using Fractural.Plugin;
+using Fractural.Plugin.AssetsRegistry;
 using Godot;
 using System;
 
@@ -11,41 +12,43 @@ namespace Fractural.StateScript
         public StateScriptEditor stateScriptEditor;
         public EditorSelection editorSelection;
 
-        private Godot.Object focusedObject = null;
-        /// <summary>
-        /// Can be StateMachine/StateMachinePlayer
-        /// </summary>
-        public Godot.Object FocusedObject
+        private IStateGraph focusedStateGraph = null;
+        public IStateGraph FocusedStateGraph
         {
-            get => focusedObject;
+            get => focusedStateGraph;
             set
             {
-                if (focusedObject != value)
+                if (focusedStateGraph != value)
                 {
-                    focusedObject = value;
-                    //OnFocusedObjectChanged(value);
+                    focusedStateGraph = value;
+                    OnFocusedStateGraphChanged(value);
                 }
             }
         }
 
         protected override void Load()
         {
-            var stateScriptEditorPrefab = ResourceLoader.Load<PackedScene>("res://addons/FracturalStateScript/StateScriptEditor.tscn");
-            stateScriptEditor = stateScriptEditorPrefab.Instance<StateScriptEditor>();
+            AssetsRegistry = new EditorAssetsRegistry(this);
+
+            stateScriptEditor = new StateScriptEditor(AssetsRegistry);
             ShowStateScriptEditor();
 
             editorSelection = GetEditorInterface().GetSelection();
-            //editorSelection.Connect("selection_changed", this, nameof(OnEditorSelectionSelectionChanged));
+            editorSelection.Connect("selection_changed", this, nameof(OnEditorSelectionSelectionChanged));
         }
 
         protected override void Unload()
         {
+            AssetsRegistry = null;
             stateScriptEditor.QueueFree();
+
+            editorSelection = GetEditorInterface().GetSelection();
+            editorSelection.Disconnect("selection_changed", this, nameof(OnEditorSelectionSelectionChanged));
         }
 
         public void ShowStateScriptEditor()
         {
-            if (FocusedObject != null && stateScriptEditor != null)
+            if (FocusedStateGraph != null && stateScriptEditor != null)
             {
                 if (!stateScriptEditor.IsInsideTree())
                     AddControlToBottomPanel(stateScriptEditor, "State Script");
@@ -53,7 +56,7 @@ namespace Fractural.StateScript
             }
         }
 
-        public void HideStateMachineEditor()
+        public void HideStateScriptEditor()
         {
             if (stateScriptEditor.IsInsideTree())
             {
@@ -63,27 +66,30 @@ namespace Fractural.StateScript
         }
 
         // TODO: Finish StateScript graph editor
-        //private void OnEditorSelectionSelectionChanged()
-        //{
-        //    var selectedNodes = editorSelection.GetSelectedNodes();
-        //    if (selectedNodes.Count == 1)
-        //    {
-        //        var selectedNode = selectedNodes[0];
-        //        if (selectedNode is StateScriptPlayer2D stateScriptPlayer)
-        //        {
-        //            FocusedObject = stateScriptPlayer;
-        //            return;
-        //        }
-        //    }
-        //    FocusedObject = null;
-        //}
+        private void OnEditorSelectionSelectionChanged()
+        {
+            var selectedNodes = editorSelection.GetSelectedNodes();
+            if (selectedNodes.Count == 1)
+            {
+                var selectedNode = selectedNodes[0];
+                if (selectedNode is IStateGraph stateGraph)
+                {
+                    FocusedStateGraph = stateGraph;
+                    return;
+                }
+            }
+            FocusedStateGraph = null;
+        }
 
-        //private void OnFocusedObjectChanged(Godot.Object newFocusedObj)
-        //{
-        //    if (newFocusedObj is StateScriptPlayer2D)
-        //    {
-
-        //    }
-        //}
+        private void OnFocusedStateGraphChanged(IStateGraph newStateGraph)
+        {
+            if (newStateGraph == null)
+                HideStateScriptEditor();
+            else
+            {
+                ShowStateScriptEditor();
+                stateScriptEditor.Load(newStateGraph);
+            }
+        }
     }
 }

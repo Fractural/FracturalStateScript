@@ -1,5 +1,6 @@
 ﻿using Fractural.Utils;
 using Godot;
+using System.Collections;
 using GDC = Godot.Collections;
 
 namespace Fractural.StateScript
