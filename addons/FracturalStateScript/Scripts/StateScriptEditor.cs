@@ -111,7 +111,7 @@ namespace Fractural.StateScript
             GD.Print("Instanced!");
         }
 
-        public async void Load(IStateGraph stateGraph)
+        public void Load(IStateGraph stateGraph)
         {
             StateGraph = stateGraph;
             if (!(stateGraph is IRawStateGraph rawGraph) || !(stateGraph is Node stateGraphNode)) return;
@@ -125,7 +125,6 @@ namespace Fractural.StateScript
                     child.QueueFree();
             }
 
-            GD.Print("Loaded with pos ", JSON.Print(RawStateGraph.StateNodePositions));
             var uselessStates = new List<string>();
             if (RawStateGraph.StateNodePositions == null)
                 RawStateGraph.StateNodePositions = new GDC.Dictionary();
@@ -133,7 +132,6 @@ namespace Fractural.StateScript
             {
                 if (!StateGraphNode.HasNode(state))
                 {
-                    GD.Print("Found useless sate ", state, " graph node ", stateGraphNode, " ", JSON.Print(stateGraphNode.GetChildren()));
                     uselessStates.PushBack(state);
                 }
             }
@@ -147,8 +145,6 @@ namespace Fractural.StateScript
                     var graphNode = CreateGraphNode(state);
                     _graphEdit.AddChild(graphNode);
                     graphNode.Offset = RawStateGraph.StateNodePositions.Get<Vector2>(child.Name);
-                    GD.Print("Looking up ", child.Name, " found ", RawStateGraph.StateNodePositions.Get<Vector2>(child.Name));
-                    GD.Print("Graph node pos ", graphNode.RectPosition);
                     StateToGraphNodeDict[state] = graphNode;
                 }
             }
@@ -175,9 +171,6 @@ namespace Fractural.StateScript
 
             if (connectionLoadFailed)
                 Save();
-
-            for (int i = 0; i < 1; i++)
-                await ToSignal(GetTree(), "idle_frame");
         }
 
         public void Unload()
