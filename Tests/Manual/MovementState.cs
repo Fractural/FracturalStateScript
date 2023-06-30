@@ -5,36 +5,37 @@ using System;
 
 namespace Tests
 {
+    [CSharpScript]
     [Tool]
     public class MovementState : State2D
     {
         [NodeVar]
         public float Speed
         {
-            get => this.GetNodeVar<float>(nameof(Speed));
-            set => SetNodeVar(nameof(Speed), value);
+            get => this.PrivateGetNodeVar<float>(nameof(Speed));
+            set => PrivateSetNodeVar(nameof(Speed), value);
         }
 
-        [NodeVar(NodeVarOperation.Get)]
+        [NodeVar(NodeVarOperation.GetPrivateSet)]
         public float GetVelocity
         {
-            get => this.GetNodeVar<float>(nameof(GetVelocity));
-            set => SetNodeVar(nameof(GetVelocity), value);
+            get => this.PrivateGetNodeVar<float>(nameof(GetVelocity));
+            set => PrivateSetNodeVar(nameof(GetVelocity), value);
         }
 
 
-        [NodeVar(NodeVarOperation.Set)]
+        [NodeVar(NodeVarOperation.SetPrivateGet)]
         public float SetState
         {
-            get => this.GetNodeVar<float>(nameof(SetState));
-            set => SetNodeVar(nameof(SetState), value);
+            get => this.PrivateGetNodeVar<float>(nameof(SetState));
+            set => PrivateSetNodeVar(nameof(SetState), value);
         }
 
         private bool _playing = false;
         private float _timer = 0;
         private const float Duration = 3f;
 
-        public override void Play()
+        protected override void _Play()
         {
             GD.Print("Movement state playing!");
             _playing = true;

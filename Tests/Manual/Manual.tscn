@@ -50,4 +50,16 @@ _nodeVars = {
 
 [node name="StateGraph2D" type="Node2D" parent="."]
 script = ExtResource( 3 )
-_nodeVars = null
+RawConnections = {
+}
+StateNodePositions = {
+"GraphNode": Vector2( 480, 20 )
+}
+
+[node name="Node2D" type="Node2D" parent="StateGraph2D"]
+script = ExtResource( 1 )
+__meta__ = {
+"_nodeVars/visible": true
+}
+_nodeVars = {
+}

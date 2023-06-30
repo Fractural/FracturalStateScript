@@ -74,26 +74,11 @@ namespace Fractural.StateScript
             _infoLabel.Visible = _infoLabel.Text != "";
         }
 
-        public override void _EnterTree()
+        public override void _Notification(int what)
         {
-            // NOTE: When deleting nodes in the editor, the editor
-            //       just removes the deleted node from the scene, but
-            //       stil keeps it in memory in-case we need to redo.
-            //       Therefore we need to use _EnterTree and _ExitTree
-            //       calls to handle moving the _labelVBox.
-
-            // _EnterTree is called before _Ready
-            // We're only interested in the node reentering back into the tree
-            // after the user redos a delete in the editor.
-            if (_labelVBox != null)
-            {
-                _labelVBox.Reparent(GetParent());
-            }
-        }
-
-        public override void _ExitTree()
-        {
-            _labelVBox.Reparent(this);
+            if (what == NotificationPredelete)
+                if (IsInstanceValid(_labelVBox))
+                    _labelVBox.QueueFree();
         }
 
         public void InitLabels()
@@ -124,7 +109,7 @@ namespace Fractural.StateScript
             _labelVBox.AddChild(_commentLabel);
             _labelVBox.AddChild(_infoLabel);
 
-            GetParent().CallDeferred("add_child", _labelVBox);
+            GetParent().AddChild(_labelVBox);
         }
 
         public void UpdateStyleboxesAndConstants()

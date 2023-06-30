@@ -72,7 +72,7 @@ namespace Fractural.StateScript
                     var outputName = outputAttribute.Name != null ? outputAttribute.Name : @event.Name;
                     if (OutputAliasLookupDict.ContainsKey(outputName)) continue;
                     OutputAliasLookupDict[outputName] = @event.Name;
-                    AddSlotLeft(outputName);
+                    AddSlotRight(outputName);
                 }
             }
         }

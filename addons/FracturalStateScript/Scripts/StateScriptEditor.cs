@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Tests;
 using GDC = Godot.Collections;
 
 namespace Fractural.StateScript
@@ -23,6 +24,7 @@ namespace Fractural.StateScript
         private ColorRect _popupOverlayRect;
         private SearchDialog _stateSearchDialog;
         private IAssetsRegistry _assetsRegistry;
+        private EditorPlugin _plugin;
 
         public IStateGraph StateGraph { get; private set; }
         public IRawStateGraph RawStateGraph => StateGraph as IRawStateGraph;
@@ -33,16 +35,18 @@ namespace Fractural.StateScript
         public Type[] StateTypes { get; private set; }
 
         public StateScriptEditor() { }
-        public StateScriptEditor(IAssetsRegistry assetsRegistry)
+        public StateScriptEditor(EditorPlugin plugin, IAssetsRegistry assetsRegistry)
         {
             RectMinSize = new Vector2(0, 200 * assetsRegistry.Scale);
 
+            _plugin = plugin;
             _assetsRegistry = assetsRegistry;
 
             _graphEdit = new GraphEdit();
             AddChild(_graphEdit);
             _graphEdit.SetAnchorsAndMarginsPreset(LayoutPreset.Wide);
             _graphEdit.Connect("connection_request", this, nameof(OnGraphEditConnectionRequest));
+            _graphEdit.Connect("_end_node_move", this, nameof(OnGraphEditEndNodeMove));
 
             var marginContainer = new MarginContainer();
             int margin = (int)(16 * _assetsRegistry.Scale);
@@ -54,12 +58,20 @@ namespace Fractural.StateScript
 
             _variableLabel = new Label();
             _variableLabel.SizeFlagsHorizontal = (int)SizeFlags.ExpandFill;
-            _variableLabel.SizeFlagsVertical = (int)SizeFlags.ExpandFill; ;
+            _variableLabel.SizeFlagsVertical = (int)SizeFlags.ExpandFill;
             _variableLabel.MouseFilter = MouseFilterEnum.Ignore;
 
             marginContainer.AddChild(_variableLabel);
 
-            StateTypes = Assembly.GetExecutingAssembly().GetTypes().Where(x => !x.IsAbstract && x.IsAssignableFrom(typeof(IAction)) && x.IsAssignableFrom(typeof(Node)) && x != typeof(StateGraph)).ToArray();
+            StateTypes = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(x => x.GetTypes())
+                .Where((x) =>
+                    !x.IsAbstract &&
+                    x.GetCustomAttribute<CSharpScriptAttribute>() != null &&
+                    typeof(IAction).IsAssignableFrom(x) &&
+                    typeof(Node).IsAssignableFrom(x) &&
+                    x != typeof(StateGraph))
+                .ToArray();
 
             _popupOverlayRect = new ColorRect();
             _popupOverlayRect.Color = new Color(Colors.Black, 0.5f);
@@ -99,7 +111,7 @@ namespace Fractural.StateScript
             GD.Print("Instanced!");
         }
 
-        public void Load(IStateGraph stateGraph)
+        public async void Load(IStateGraph stateGraph)
         {
             StateGraph = stateGraph;
             if (!(stateGraph is IRawStateGraph rawGraph) || !(stateGraph is Node stateGraphNode)) return;
@@ -113,13 +125,17 @@ namespace Fractural.StateScript
                     child.QueueFree();
             }
 
+            GD.Print("Loaded with pos ", JSON.Print(RawStateGraph.StateNodePositions));
             var uselessStates = new List<string>();
             if (RawStateGraph.StateNodePositions == null)
                 RawStateGraph.StateNodePositions = new GDC.Dictionary();
             foreach (string state in RawStateGraph.StateNodePositions.Keys)
             {
                 if (!StateGraphNode.HasNode(state))
+                {
+                    GD.Print("Found useless sate ", state, " graph node ", stateGraphNode, " ", JSON.Print(stateGraphNode.GetChildren()));
                     uselessStates.PushBack(state);
+                }
             }
             foreach (string uselessState in uselessStates)
                 RawStateGraph.StateNodePositions.Remove(uselessState);
@@ -128,10 +144,12 @@ namespace Fractural.StateScript
             {
                 if (child is IAction state)
                 {
-                    var node = CreateGraphNode(state);
-                    _graphEdit.AddChild(node);
-                    node.RectPosition = RawStateGraph.StateNodePositions.Get<Vector2>(child.Name);
-                    StateToGraphNodeDict[state] = node;
+                    var graphNode = CreateGraphNode(state);
+                    _graphEdit.AddChild(graphNode);
+                    graphNode.Offset = RawStateGraph.StateNodePositions.Get<Vector2>(child.Name);
+                    GD.Print("Looking up ", child.Name, " found ", RawStateGraph.StateNodePositions.Get<Vector2>(child.Name));
+                    GD.Print("Graph node pos ", graphNode.RectPosition);
+                    StateToGraphNodeDict[state] = graphNode;
                 }
             }
 
@@ -157,6 +175,9 @@ namespace Fractural.StateScript
 
             if (connectionLoadFailed)
                 Save();
+
+            for (int i = 0; i < 1; i++)
+                await ToSignal(GetTree(), "idle_frame");
         }
 
         public void Unload()
@@ -195,8 +216,9 @@ namespace Fractural.StateScript
             foreach (Node child in _graphEdit.GetChildren())
             {
                 if (child is StateScriptGraphNode graphNode)
-                    RawStateGraph.StateNodePositions[child.Name] = graphNode.RectPosition;
+                    RawStateGraph.StateNodePositions[(graphNode.State as Node).Name] = graphNode.Offset;
             }
+            GD.Print("Saved raw state node pos ", JSON.Print(RawStateGraph.StateNodePositions));
             RawStateGraph.RawConnections = StateScriptUtils.ConnectionListDictToGDDict(StateGraphNode, StateToConnectionsDict);
         }
 
@@ -216,8 +238,10 @@ namespace Fractural.StateScript
         private void OnStateSearchEntrySelected(string stateTypeName)
         {
             var stateType = StateTypes.FirstOrDefault(x => x.FullName == stateTypeName);
-            var stateInstance = Activator.CreateInstance(stateType) as Node;
-            _graphEdit.AddChild(stateInstance);
+            var csharpScript = GD.Load<CSharpScript>(stateType.GetCustomAttribute<CSharpScriptAttribute>().FilePath);
+            var stateInstance = csharpScript.New() as Node;
+            StateGraphNode.AddChild(stateInstance);
+            stateInstance.Owner = _plugin.GetEditorInterface().GetEditedSceneRoot();
         }
 
         private void OnNodeAdded(Node node)
@@ -225,6 +249,7 @@ namespace Fractural.StateScript
             if (node.GetParent() == StateGraphNode && node is IAction state)
             {
                 var stateScriptNode = CreateGraphNode(state);
+                stateScriptNode.Connect("close_request", this, nameof(OnStateGraphNodeClosed), GDUtils.GDParams(node));
                 _graphEdit.AddChild(stateScriptNode);
             }
         }
@@ -241,6 +266,18 @@ namespace Fractural.StateScript
                             connections.RemoveAt(i);
                 }
             }
+        }
+
+        private void OnStateGraphNodeClosed(StateGraphNode node)
+        {
+            (node.State as Node).QueueFree();
+            node.QueueFree();
+        }
+
+        private void OnGraphEditEndNodeMove()
+        {
+            GD.Print("End node move, saving");
+            Save();
         }
 
         private void OnGraphEditConnectionRequest(string from, int from_slot, string to, int to_slot)

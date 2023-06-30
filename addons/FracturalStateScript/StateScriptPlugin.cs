@@ -30,7 +30,7 @@ namespace Fractural.StateScript
         {
             AssetsRegistry = new EditorAssetsRegistry(this);
 
-            stateScriptEditor = new StateScriptEditor(AssetsRegistry);
+            stateScriptEditor = new StateScriptEditor(this, AssetsRegistry);
             ShowStateScriptEditor();
 
             editorSelection = GetEditorInterface().GetSelection();
