@@ -97,12 +97,13 @@ namespace Fractural.StateScript
 
         private void OnInfoChanged()
         {
-            CommentText = State.Comment;
+            InfoText = State.Info;
         }
 
         private void OnCommentChanged()
         {
-            InfoText = State.Info;
+            GD.Print("Comment changed to ", State.Info);
+            CommentText = State.Comment;
         }
     }
 }

@@ -6,8 +6,17 @@ namespace Fractural.StateScript
     [Tool]
     public class Entry : ActionState
     {
+        private string _entryName = "";
         [Export]
-        public string EntryName { get; set; } = "";
+        public string EntryName
+        {
+            get => _entryName;
+            set
+            {
+                _entryName = value;
+                InvokeInfoChanged();
+            }
+        }
         public override string Info => EntryName;
     }
 }

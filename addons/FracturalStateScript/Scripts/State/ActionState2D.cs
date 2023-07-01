@@ -13,8 +13,17 @@ namespace Fractural.StateScript
         public event Action InfoChanged;
         public event Action CommentChanged;
 
+        private string _comment = "";
         [Export(PropertyHint.MultilineText)]
-        public string Comment { get; set; }
+        public string Comment
+        {
+            get => _comment;
+            set
+            {
+                _comment = value;
+                CommentChanged?.Invoke();
+            }
+        }
         public virtual string Info => "";
         public override HintString.DictNodeVarsMode Mode { get => HintString.DictNodeVarsMode.Attributes; set { } }
 

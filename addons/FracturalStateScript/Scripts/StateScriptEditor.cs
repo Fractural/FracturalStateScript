@@ -314,6 +314,7 @@ namespace Fractural.StateScript
                 var node = _graphEdit.GetNodeOrNull(nodeName);
                 if (node == null)
                     continue;
+                OnGraphEditNodeUnselected(node);
                 if (node is StateScriptGraphNode graphNode)
                     (graphNode.State as Node).QueueFree();
                 deletedNodes.Add(node.Name);
@@ -325,6 +326,7 @@ namespace Fractural.StateScript
                     OnGraphEditDisconnectionRequest(connection.Get<string>("from"), connection.Get<int>("from_port"), connection.Get<string>("to"), connection.Get<int>("to_port"));
             }
             _canSave = true;
+
             Save();
         }
 

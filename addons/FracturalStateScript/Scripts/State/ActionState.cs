@@ -15,9 +15,8 @@ namespace Fractural.StateScript
         public event Action InfoChanged;
         public event Action CommentChanged;
 
-        [Export(PropertyHint.MultilineText)]
-
         private string _comment = "";
+        [Export(PropertyHint.MultilineText)]
         public string Comment
         {
             get => _comment;
@@ -31,7 +30,7 @@ namespace Fractural.StateScript
         public override HintString.DictNodeVarsMode Mode { get => HintString.DictNodeVarsMode.Attributes; set { } }
 
         [Output("Out")]
-        public event System.Action Exited;
+        public event Action Exited;
 
         public override void _Ready()
         {
@@ -41,7 +40,7 @@ namespace Fractural.StateScript
 
         protected virtual void _SetupInfoChanged()
         {
-            RawNodeVarsChanged += () => InfoChanged?.Invoke();
+            RawNodeVarsChanged += InvokeInfoChanged;
         }
 
 
@@ -54,6 +53,7 @@ namespace Fractural.StateScript
 
         protected virtual void _Play() { }
 
+        protected void InvokeInfoChanged() => InfoChanged?.Invoke();
         protected void InvokeExited() => Exited?.Invoke();
 
         public virtual GDC.Dictionary _SaveState()

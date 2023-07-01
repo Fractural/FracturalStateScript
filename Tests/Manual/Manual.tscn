@@ -1,58 +1,16 @@
-[gd_scene load_steps=6 format=2]
+[gd_scene load_steps=5 format=2]
 
 [ext_resource path="res://Tests/Manual/MovementState.cs" type="Script" id=1]
-[ext_resource path="res://addons/FracturalStateScript/Scripts/Nodes/Wait.cs" type="Script" id=2]
 [ext_resource path="res://addons/FracturalStateScript/Scripts/State/StateGraph.cs" type="Script" id=3]
 [ext_resource path="res://addons/FracturalStateScript/Scripts/Nodes/Exit.cs" type="Script" id=4]
 [ext_resource path="res://addons/FracturalStateScript/Scripts/Nodes/Entry.cs" type="Script" id=5]
 
 [node name="Manual" type="Node"]
 
-[node name="MovementState" type="Node2D" parent="."]
-script = ExtResource( 1 )
-__meta__ = {
-"NodeVars/visible": true,
-"_nodeVars/visible": true
-}
-_NodeVars = {
-}
-
-[node name="Node" type="Node" parent="MovementState"]
-script = ExtResource( 2 )
-__meta__ = {
-"NodeVars/visible": true,
-"_nodeVars/visible": true
-}
-_NodeVars = {
-}
-
-[node name="MovementState2" type="Node2D" parent="MovementState"]
-script = ExtResource( 1 )
-__meta__ = {
-"_nodeVars/visible": true
-}
-_NodeVars = {
-"SetState": {
-"ContainerPath": NodePath(".."),
-"ContainerVarName": "SetState",
-"InitialValue": 0.0,
-"Operation": 1,
-"Type": "DynamicNodeVarData",
-"ValueType": "System.Single"
-}
-}
-
-[node name="Wait" type="Node" parent="."]
-script = ExtResource( 2 )
-__meta__ = {
-"_NodeVars/visible": true,
-"_nodeVars/visible": true
-}
-_NodeVars = {
-}
-
 [node name="StateGraph2D" type="Node2D" parent="."]
 script = ExtResource( 3 )
+Comment = "sdfsdfsdfsdfsdfsdfsdfsdf
+"
 RawConnections = {
 "Node": [ {
 "FromEvent": "Exited",
@@ -66,15 +24,10 @@ RawConnections = {
 } ]
 }
 StateNodePositions = {
-"Node": Vector2( 260, 80 ),
-"Node2D": Vector2( 520, 100 ),
-"Node2D2": Vector2( 1110.32, 18.1561 ),
-"Node2D3": Vector2( 20, -40 ),
-"Node2D4": Vector2( 1535.29, -442.243 ),
-"Node2D5": Vector2( 836.633, -164.732 ),
-"Node2D6": Vector2( 2208.91, -463.359 ),
-"Node5": Vector2( 760, 300 ),
-"Node9": Vector2( 500, -80 )
+"Node": Vector2( 320, 120 ),
+"Node2D": Vector2( 500, 120 ),
+"Node2D3": Vector2( 100, 60 ),
+"Node5": Vector2( 720, 180 )
 }
 
 [node name="Node" type="Node" parent="StateGraph2D"]
@@ -83,8 +36,11 @@ __meta__ = {
 "_NodeVars/visible": true,
 "_nodeVars/visible": true
 }
-_comment = "sdfsdfsdf"
-EntryName = "Hello"
+Comment = "sdfsdf
+sdfsdfsdfsdfsdf
+sdfsdf asdf
+asdf asdfsdf"
+EntryName = "Entry"
 _NodeVars = {
 }
 
@@ -103,7 +59,6 @@ __meta__ = {
 "_NodeVars/visible": true,
 "_nodeVars/visible": true
 }
-Comment = ""
 _NodeVars = {
 }
 
@@ -112,20 +67,5 @@ script = ExtResource( 1 )
 __meta__ = {
 "_NodeVars/visible": true
 }
-_NodeVars = {
-}
-
-[node name="Node9" type="Node" parent="StateGraph2D"]
-script = ExtResource( 5 )
-_NodeVars = {
-}
-
-[node name="Node2D2" type="Node2D" parent="StateGraph2D"]
-script = ExtResource( 1 )
-_NodeVars = {
-}
-
-[node name="Node2D5" type="Node2D" parent="StateGraph2D"]
-script = ExtResource( 1 )
 _NodeVars = {
 }
