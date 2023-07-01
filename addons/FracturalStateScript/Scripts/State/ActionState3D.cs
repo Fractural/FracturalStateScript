@@ -2,6 +2,7 @@
 using Fractural.Utils;
 using Godot;
 using GodotRollbackNetcode;
+using System;
 using GDC = Godot.Collections;
 
 namespace Fractural.StateScript
@@ -9,6 +10,9 @@ namespace Fractural.StateScript
     [Tool]
     public abstract class ActionState3D : ParentPropagatedNodeVarContainer3D, IAction, INetworkSerializable
     {
+        public event Action InfoChanged;
+        public event Action CommentChanged;
+
         [Export(PropertyHint.MultilineText)]
         public string Comment { get; set; }
         public virtual string Info => "";
@@ -16,6 +20,17 @@ namespace Fractural.StateScript
 
         [Output("Out")]
         public event System.Action Exited;
+
+        public override void _Ready()
+        {
+            base._Ready();
+            _SetupInfoChanged();
+        }
+
+        protected virtual void _SetupInfoChanged()
+        {
+            RawNodeVarsChanged += () => InfoChanged?.Invoke();
+        }
 
         [Input("In")]
         public virtual void Play()

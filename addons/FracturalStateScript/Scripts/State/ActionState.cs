@@ -3,6 +3,7 @@ using Fractural.NodeVars;
 using Fractural.Utils;
 using Godot;
 using GodotRollbackNetcode;
+using System;
 using System.Collections.Generic;
 using GDC = Godot.Collections;
 
@@ -11,13 +12,38 @@ namespace Fractural.StateScript
     [Tool]
     public abstract class ActionState : ParentPropagatedNodeVarContainer, IAction, INetworkSerializable
     {
+        public event Action InfoChanged;
+        public event Action CommentChanged;
+
         [Export(PropertyHint.MultilineText)]
-        public string Comment { get; set; } = "";
+
+        private string _comment = "";
+        public string Comment
+        {
+            get => _comment;
+            set
+            {
+                _comment = value;
+                CommentChanged?.Invoke();
+            }
+        }
         public virtual string Info => "";
         public override HintString.DictNodeVarsMode Mode { get => HintString.DictNodeVarsMode.Attributes; set { } }
 
         [Output("Out")]
         public event System.Action Exited;
+
+        public override void _Ready()
+        {
+            base._Ready();
+            _SetupInfoChanged();
+        }
+
+        protected virtual void _SetupInfoChanged()
+        {
+            RawNodeVarsChanged += () => InfoChanged?.Invoke();
+        }
+
 
         [Input("In")]
         public virtual void Play()

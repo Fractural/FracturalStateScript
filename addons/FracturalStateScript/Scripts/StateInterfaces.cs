@@ -32,6 +32,8 @@ namespace Fractural.StateScript
 
     public interface IAction : INodeVarContainer, INetworkSerializable
     {
+        event System.Action CommentChanged;
+        event System.Action InfoChanged;
         event System.Action Exited;
         void Play();
         string Comment { get; set; }

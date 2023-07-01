@@ -21,6 +21,20 @@ namespace Fractural.StateScript
         public IDictionary<string, string> InputAliasLookupDict { get; private set; }
         public IDictionary<string, string> OutputAliasLookupDict { get; private set; }
 
+        public override void _Notification(int what)
+        {
+            base._Notification(what);
+
+            if (what == NotificationPredelete)
+            {
+                if (State != null)
+                {
+                    State.CommentChanged -= OnCommentChanged;
+                    State.InfoChanged -= OnInfoChanged;
+                }
+            }
+        }
+
         public string GetInputPortMethod(int index)
         {
             return InputAliasLookupDict[LeftSlotNames[index]];
@@ -50,6 +64,8 @@ namespace Fractural.StateScript
         public virtual void UpdateState(IAction newState)
         {
             _state = newState;
+            _state.InfoChanged += OnInfoChanged;
+            _state.CommentChanged += OnCommentChanged;
             ClearAllSlots();
             InputAliasLookupDict = new Dictionary<string, string>();
             OutputAliasLookupDict = new Dictionary<string, string>();
@@ -75,8 +91,18 @@ namespace Fractural.StateScript
                     AddSlotRight(outputName);
                 }
             }
-            CommentText = newState.Comment;
-            InfoText = newState.Info;
+            OnInfoChanged();
+            OnCommentChanged();
+        }
+
+        private void OnInfoChanged()
+        {
+            CommentText = State.Comment;
+        }
+
+        private void OnCommentChanged()
+        {
+            InfoText = State.Info;
         }
     }
 }

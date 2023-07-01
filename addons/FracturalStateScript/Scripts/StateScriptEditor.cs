@@ -1,4 +1,5 @@
-﻿using Fractural.Plugin;
+﻿using Fractural.NodeVars;
+using Fractural.Plugin;
 using Fractural.Plugin.AssetsRegistry;
 using Fractural.Utils;
 using Godot;
@@ -27,16 +28,26 @@ namespace Fractural.StateScript
             public Type[] StateTypes { get; set; }
         }
 
+        private enum LocalPopupType
+        {
+            Center,
+            CenterFull,
+        }
+
         private GraphEdit _graphEdit;
         private Label _variableLabel;
 
+        private ConfirmationDialog _deleteDialog;
         private Button _createStateButton;
         private ColorRect _popupOverlayRect;
         private SearchDialog _stateSearchDialog;
         private IAssetsRegistry _assetsRegistry;
         private EditorPlugin _plugin;
-
+        private EditorSelection _selection;
+        private HashSet<Node> _selectedGDNodes;
         private bool _canSave = true;
+        private Popup _localPopup;
+        private GDC.Array _currDeletedNodes;
 
         private CSharpData _data;
 
@@ -47,6 +58,7 @@ namespace Fractural.StateScript
             RectMinSize = new Vector2(0, 200 * assetsRegistry.Scale);
 
             _plugin = plugin;
+            _selection = _plugin.GetEditorInterface().GetSelection();
             _assetsRegistry = assetsRegistry;
 
             _graphEdit = new GraphEdit();
@@ -56,6 +68,8 @@ namespace Fractural.StateScript
             _graphEdit.Connect("disconnection_request", this, nameof(OnGraphEditDisconnectionRequest));
             _graphEdit.Connect("connection_request", this, nameof(OnGraphEditConnectionRequest));
             _graphEdit.Connect("_end_node_move", this, nameof(OnGraphEditEndNodeMove));
+            _graphEdit.Connect("node_selected", this, nameof(OnGraphEditNodeSelected));
+            _graphEdit.Connect("node_unselected", this, nameof(OnGraphEditNodeUnselected));
             _graphEdit.RightDisconnects = true;
 
             var marginContainer = new MarginContainer();
@@ -91,7 +105,6 @@ namespace Fractural.StateScript
 
             _stateSearchDialog = new SearchDialog();
             _stateSearchDialog.Connect(nameof(SearchDialog.EntrySelected), this, nameof(OnStateSearchEntrySelected));
-            _stateSearchDialog.Connect("popup_hide", this, nameof(OnStateSearchDialogHide));
             _stateSearchDialog.SearchEntries = _data.StateTypes.Select(x => new SearchEntry()
             {
                 Text = x.FullName
@@ -111,6 +124,10 @@ namespace Fractural.StateScript
             _createStateButton.Connect("pressed", this, nameof(OnCreateStateButtonPressed));
             _graphEdit.GetZoomHbox().AddChild(_createStateButton);
 
+            _deleteDialog = new ConfirmationDialog();
+            _deleteDialog.Connect("confirmed", this, nameof(OnDeleteDialogConfirmed));
+            AddChild(_deleteDialog);
+
             GD.Print("Constructed");
         }
 
@@ -123,6 +140,15 @@ namespace Fractural.StateScript
 
         public void Load(IStateGraph stateGraph)
         {
+            if (stateGraph != _data.StateGraph)
+                Unload();
+
+            GetTree().Connect("node_added", this, nameof(OnNodeAdded));
+            GetTree().Connect("node_removed", this, nameof(OnNodeRemoved));
+            _selection.Connect("selection_changed", this, nameof(OnSelectionChanged));
+            CallDeferred(nameof(OnSelectionChanged));
+
+            _canSave = false;
             _data.StateGraph = stateGraph;
             if (!(stateGraph is IRawStateGraph rawGraph) || !(stateGraph is Node stateGraphNode)) return;
             var result = StateScriptUtils.ConnectionListDictFromGDDict(stateGraphNode, rawGraph.RawConnections);
@@ -130,13 +156,6 @@ namespace Fractural.StateScript
             _data.StateToConnectionsDict = result.Dictionary;
             _data.StateToGraphNodeDict = new Dictionary<IAction, StateScriptGraphNode>();
             GD.Print("Loaded state graph, ", (stateGraph as Node).GetPath());
-
-            _graphEdit.ClearConnections();
-            foreach (Node child in _graphEdit.GetChildren())
-            {
-                if (child is StateScriptGraphNode)
-                    child.QueueFree();
-            }
 
             var uselessStates = new List<string>();
             if (_data.RawStateGraph.StateNodePositions == null)
@@ -156,7 +175,6 @@ namespace Fractural.StateScript
                 if (child is IAction state)
                 {
                     var graphNode = CreateGraphNode(state);
-                    _graphEdit.AddChild(graphNode);
                     graphNode.Offset = _data.RawStateGraph.StateNodePositions.Get<Vector2>(child.Name);
                     _data.StateToGraphNodeDict[state] = graphNode;
                 }
@@ -173,9 +191,7 @@ namespace Fractural.StateScript
                     _graphEdit.ConnectNode(fromStateGraphNode.Name, fromStateGraphNode.GetOutputPortFromEvent(connection.FromEvent), toStateGraphNode.Name, toStateGraphNode.GetInputPortFromMethod(connection.ToMethod));
                 }
             }
-
-            GetTree().Connect("node_added", this, nameof(OnNodeAdded));
-            GetTree().Connect("node_removed", this, nameof(OnNodeRemoved));
+            _canSave = true;
 
             if (needsResave)
                 Save();
@@ -183,8 +199,16 @@ namespace Fractural.StateScript
 
         public void Unload()
         {
-            GetTree().Disconnect("node_added", this, nameof(OnNodeAdded));
-            GetTree().Disconnect("node_removed", this, nameof(OnNodeRemoved));
+            _graphEdit.ClearConnections();
+            foreach (Node child in _graphEdit.GetChildren())
+            {
+                if (child is StateScriptGraphNode graphNode)
+                    graphNode.QueueFree();
+            }
+
+            _selection.TryDisconnect("selection_changed", this, nameof(OnSelectionChanged));
+            GetTree().TryDisconnect("node_added", this, nameof(OnNodeAdded));
+            GetTree().TryDisconnect("node_removed", this, nameof(OnNodeRemoved));
             GD.Print("Unloaded!");
         }
 
@@ -208,8 +232,10 @@ namespace Fractural.StateScript
                 node = new ActionGraphNode();
             }
             node.State = state;
-            node.Offset = _graphEdit.ScrollOffset + (_graphEdit.RectSize / 2) - node.RectSize;
             node.Connect("close_request", this, nameof(OnGraphEditCloseNodeRequest), GDUtils.GDParams(node));
+            _graphEdit.AddChild(node);
+            node.Offset = (_graphEdit.ScrollOffset + (_graphEdit.RectSize / 2) - node.RectSize / 2) * 1f / _graphEdit.Zoom;
+            Save();
             return node;
         }
 
@@ -225,17 +251,49 @@ namespace Fractural.StateScript
             _data.RawStateGraph.RawConnections = StateScriptUtils.ConnectionListDictToGDDict(_data.StateToConnectionsDict);
         }
 
-        private void OnStateSearchDialogHide()
+        private void LocalPopup(Popup popup, LocalPopupType type = LocalPopupType.Center)
         {
+            _popupOverlayRect.Visible = true;
+            _localPopup = popup;
+            var globalRectSize = GetGlobalRect().Size;
+            var smallestSize = globalRectSize.x > globalRectSize.y ? globalRectSize.y : globalRectSize.x;
+
+            popup.Connect("popup_hide", this, nameof(OnLocalPopupHide));
+            switch (type)
+            {
+                case LocalPopupType.Center:
+                    var globalRectCenter = GetGlobalRect().GetCenter();
+                    var popupRect = popup.GetRect().SetCenter(globalRectCenter);
+                    popup.Popup_(popupRect);
+                    break;
+                case LocalPopupType.CenterFull:
+                    popup.Popup_(GetGlobalRect().AddPadding(-smallestSize * 0.25f * _assetsRegistry.Scale));
+                    break;
+            }
+        }
+
+        private void OnSelectionChanged()
+        {
+            GD.Print("Selection changed");
+            _selectedGDNodes = new HashSet<Node>(_selection.GetSelectedNodes().Cast<Node>());
+            foreach (Node child in _graphEdit.GetChildren())
+            {
+                if (child is StateScriptGraphNode graphNode)
+                    graphNode.Selected = _selectedGDNodes.Contains(graphNode.State as Node);
+            }
+        }
+
+        private void OnLocalPopupHide()
+        {
+            _popupOverlayRect.Visible = false;
+            _localPopup.Disconnect("popup_hide", this, nameof(OnLocalPopupHide));
+            _localPopup = null;
             _popupOverlayRect.Visible = false;
         }
 
         private void OnCreateStateButtonPressed()
         {
-            _popupOverlayRect.Visible = true;
-            var globalRectSize = GetGlobalRect().Size;
-            var smallestSize = globalRectSize.x > globalRectSize.y ? globalRectSize.y : globalRectSize.x;
-            _stateSearchDialog.Popup_(GetGlobalRect().AddPadding(-smallestSize * 0.25f * _assetsRegistry.Scale));
+            LocalPopup(_stateSearchDialog, LocalPopupType.CenterFull);
         }
 
         private void OnStateSearchEntrySelected(string stateTypeName)
@@ -247,13 +305,33 @@ namespace Fractural.StateScript
             stateInstance.Owner = _plugin.GetEditorInterface().GetEditedSceneRoot();
         }
 
+        private void OnDeleteDialogConfirmed()
+        {
+            _canSave = false;
+            HashSet<string> deletedNodes = new HashSet<string>();
+            foreach (string nodeName in _currDeletedNodes)
+            {
+                var node = _graphEdit.GetNodeOrNull(nodeName);
+                if (node == null)
+                    continue;
+                if (node is StateScriptGraphNode graphNode)
+                    (graphNode.State as Node).QueueFree();
+                deletedNodes.Add(node.Name);
+                node.QueueFree();
+            }
+            foreach (GDC.Dictionary connection in _graphEdit.GetConnectionList())
+            {
+                if (deletedNodes.Contains(connection.Get<string>("from")) || deletedNodes.Contains(connection.Get<string>("to")))
+                    OnGraphEditDisconnectionRequest(connection.Get<string>("from"), connection.Get<int>("from_port"), connection.Get<string>("to"), connection.Get<int>("to_port"));
+            }
+            _canSave = true;
+            Save();
+        }
+
         private void OnNodeAdded(Node node)
         {
             if (node.GetParent() == _data.StateGraphNode && node is IAction state)
-            {
-                var stateScriptNode = CreateGraphNode(state);
-                _graphEdit.AddChild(stateScriptNode);
-            }
+                CreateGraphNode(state);
         }
 
         private void OnNodeRemoved(Node node)
@@ -338,25 +416,43 @@ namespace Fractural.StateScript
 
         private void OnGraphEditDeleteNodesRequest(GDC.Array nodes)
         {
-            _canSave = false;
-            HashSet<string> deletedNodes = new HashSet<string>();
-            foreach (string nodeName in nodes)
+            _currDeletedNodes = nodes;
+            _deleteDialog.DialogText = $"Delete {nodes.Count} state node(s)?";
+            LocalPopup(_deleteDialog, LocalPopupType.Center);
+        }
+
+        private void OnGraphEditNodeSelected(Node node)
+        {
+            if (!(node is StateScriptGraphNode graphNode)) return;
+            if (!_selectedGDNodes.Contains(graphNode.State as Node))
             {
-                var node = _graphEdit.GetNodeOrNull(nodeName);
-                if (node == null)
-                    continue;
-                if (node is StateScriptGraphNode graphNode)
-                    (graphNode.State as Node).QueueFree();
-                deletedNodes.Add(node.Name);
-                node.QueueFree();
+                _selectedGDNodes.Add(graphNode.State as Node);
+                if (_selectedGDNodes.Contains(_data.StateGraphNode) && _selectedGDNodes.Any(x => x.GetParent() == _data.StateGraphNode))
+                {
+                    // We selected a child of the StateGraphNode, so we no longer need to keep the StateGraphNode selected
+                    // to keep the StateScript editor visible.
+                    _selectedGDNodes.Remove(_data.StateGraphNode);
+                    _selection.RemoveNode(_data.StateGraphNode);
+                }
+                _selection.AddNode(graphNode.State as Node);
             }
-            foreach (GDC.Dictionary connection in _graphEdit.GetConnectionList())
+        }
+
+        private void OnGraphEditNodeUnselected(Node node)
+        {
+            if (!(node is StateScriptGraphNode graphNode)) return;
+            if (_selectedGDNodes.Contains(graphNode.State as Node))
             {
-                if (deletedNodes.Contains(connection.Get<string>("from")) || deletedNodes.Contains(connection.Get<string>("to")))
-                    OnGraphEditDisconnectionRequest(connection.Get<string>("from"), connection.Get<int>("from_port"), connection.Get<string>("to"), connection.Get<int>("to_port"));
+                _selectedGDNodes.Remove(graphNode.State as Node);
+                if (!_selectedGDNodes.Any(x => x == _data.StateGraphNode || x.GetParent() == _data.StateGraphNode))
+                {
+                    // We are removing the last selected state node, so we need to add the StateGraphNode to the selection
+                    // in order to keep the StateScript editor visible.
+                    _selectedGDNodes.Add(_data.StateGraphNode);
+                    _selection.AddNode(_data.StateGraphNode);
+                }
+                _selection.RemoveNode(graphNode.State as Node);
             }
-            _canSave = true;
-            Save();
         }
     }
 }

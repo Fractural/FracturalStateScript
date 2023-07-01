@@ -1,5 +1,6 @@
 using Fractural.Plugin;
 using Fractural.Plugin.AssetsRegistry;
+using Fractural.Utils;
 using Godot;
 using System;
 
@@ -70,12 +71,16 @@ namespace Fractural.StateScript
         private void OnEditorSelectionSelectionChanged()
         {
             var selectedNodes = editorSelection.GetSelectedNodes();
-            if (selectedNodes.Count == 1)
+            foreach (Node selectedNode in selectedNodes)
             {
-                var selectedNode = selectedNodes[0];
                 if (selectedNode is IStateGraph stateGraph)
                 {
                     FocusedStateGraph = stateGraph;
+                    return;
+                }
+                else if (selectedNode.GetParent() is IStateGraph parentStateGraph)
+                {
+                    FocusedStateGraph = parentStateGraph;
                     return;
                 }
             }
