@@ -11,6 +11,9 @@ namespace Fractural.StateScript
     [Tool]
     public abstract class ActionState : ParentPropagatedNodeVarContainer, IAction, INetworkSerializable
     {
+        [Export(PropertyHint.MultilineText)]
+        public string Comment { get; set; } = "";
+        public virtual string Info => "";
         public override HintString.DictNodeVarsMode Mode { get => HintString.DictNodeVarsMode.Attributes; set { } }
 
         [Output("Out")]

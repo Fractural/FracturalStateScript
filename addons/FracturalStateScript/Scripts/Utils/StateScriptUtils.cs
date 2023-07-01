@@ -7,80 +7,108 @@ namespace Fractural.StateScript
 {
     public static class StateScriptUtils
     {
-        public static IDictionary<IAction, StateNodeConnection[]> ConnectionArrayDictFromGDDict(Node source, GDC.Dictionary rawConnectionDict)
+        public struct ConnectionArrayDictFromGDDictResult
         {
-            var stateToConnectionsDict = new Dictionary<IAction, StateNodeConnection[]>();
-            if (rawConnectionDict == null)
-                return stateToConnectionsDict;
-            foreach (NodePath statePath in rawConnectionDict.Keys)
+            public IDictionary<IAction, StateNodeConnection[]> Dictionary { get; set; }
+            public bool HadParseFailures { get; set; }
+        }
+
+        public static ConnectionArrayDictFromGDDictResult ConnectionArrayDictFromGDDict(Node stateGraphNode, GDC.Dictionary rawConnectionDict)
+        {
+            var result = new ConnectionArrayDictFromGDDictResult()
             {
-                var from = source.GetNode<IAction>(statePath);
-                var connectionsGDCArray = rawConnectionDict.Get<GDC.Array>(statePath);
+                Dictionary = new Dictionary<IAction, StateNodeConnection[]>(),
+                HadParseFailures = false
+            };
+            if (rawConnectionDict == null)
+                return result;
+            foreach (string fromStateName in rawConnectionDict.Keys)
+            {
+                var from = stateGraphNode.GetNodeOrNull<IAction>(fromStateName);
+                if (from == null)
+                {
+                    result.HadParseFailures = true;
+                    continue;
+                }
+                var connectionsGDCArray = rawConnectionDict.Get<GDC.Array>(fromStateName);
+                if (connectionsGDCArray.Count == 0)
+                {
+                    result.HadParseFailures = true;
+                    continue;
+                }
                 var connectionsArray = new StateNodeConnection[connectionsGDCArray.Count];
                 int i = 0;
                 foreach (GDC.Dictionary connectionDict in connectionsGDCArray)
                 {
                     var connection = new StateNodeConnection();
-                    connection.FromGDDict(connectionDict, from as Node);
-                    connectionsArray[i] = connection;
+                    if (!connection.FromGDDict(connectionDict, stateGraphNode))
+                        result.HadParseFailures = true;
+                    else
+                        connectionsArray[i] = connection;
                     i++;
                 }
-                stateToConnectionsDict[from] = connectionsArray;
+                result.Dictionary[from] = connectionsArray;
             }
-            return stateToConnectionsDict;
+            return result;
         }
 
-        public static GDC.Dictionary ConnectionListDictToGDDict(Node source, IDictionary<IAction, IList<StateNodeConnection>> connectionListDict)
+        public static GDC.Dictionary ConnectionListDictToGDDict(IDictionary<IAction, IList<StateNodeConnection>> connectionListDict)
         {
             var stateToConnectionsDict = new GDC.Dictionary();
             foreach (IAction state in connectionListDict.Keys)
             {
                 if (!(state is Node fromStateNode)) continue;
 
-                var path = source.GetPathTo(fromStateNode);
                 var connectionsArray = new GDC.Array();
                 foreach (var connection in connectionListDict[state])
-                    connectionsArray.Add(connection.ToGDDict(source));
-                stateToConnectionsDict[path] = connectionsArray;
+                    connectionsArray.Add(connection.ToGDDict());
+                stateToConnectionsDict[fromStateNode.Name] = connectionsArray;
             }
             return stateToConnectionsDict;
         }
 
-        public static IDictionary<IAction, IList<StateNodeConnection>> ConnectionListDictFromGDDict(Node source, GDC.Dictionary rawConnectionDict)
+        public struct ConnectionListDictFromGDDictResult
         {
-            GD.Print("1");
-            var stateToConnectionsDict = new Dictionary<IAction, IList<StateNodeConnection>>();
-            GD.Print("2");
-            if (rawConnectionDict == null)
-                return stateToConnectionsDict;
-            GD.Print("3");
-            foreach (NodePath statePath in rawConnectionDict.Keys)
+            public IDictionary<IAction, IList<StateNodeConnection>> Dictionary { get; set; }
+            public bool HadParseFailures { get; set; }
+        }
+
+        public static ConnectionListDictFromGDDictResult ConnectionListDictFromGDDict(Node stateGraphNode, GDC.Dictionary rawConnectionDict)
+        {
+            ConnectionListDictFromGDDictResult result = new ConnectionListDictFromGDDictResult()
             {
-                GD.Print("4.1");
-                var from = source.GetNode<IAction>(statePath);
-                GD.Print("4.2");
-                var connectionsGDCArray = rawConnectionDict.Get<GDC.Array>(statePath);
-                GD.Print("4.3");
+                Dictionary = new Dictionary<IAction, IList<StateNodeConnection>>(),
+                HadParseFailures = false
+            };
+            if (rawConnectionDict == null)
+                return result;
+            foreach (string fromStateName in rawConnectionDict.Keys)
+            {
+                var from = stateGraphNode.GetNodeOrNull<IAction>(fromStateName);
+                if (from == null)
+                {
+                    result.HadParseFailures = true;
+                    continue;
+                }
+                var connectionsGDCArray = rawConnectionDict.Get<GDC.Array>(fromStateName);
+                if (connectionsGDCArray.Count == 0)
+                {
+                    result.HadParseFailures = true;
+                    continue;
+                }
                 var connectionsList = new List<StateNodeConnection>(connectionsGDCArray.Count);
-                GD.Print("4.4");
                 foreach (GDC.Dictionary connectionDict in connectionsGDCArray)
                 {
-                    GD.Print("4.4.1");
                     var connection = new StateNodeConnection();
-
-                    GD.Print("4.4.2");
-                    connection.FromGDDict(connectionDict, from as Node);
-
-                    GD.Print("4.4.3");
-                    connectionsList.Add(connection);
+                    if (!connection.FromGDDict(connectionDict, stateGraphNode))
+                        result.HadParseFailures = true;
+                    else
+                        connectionsList.Add(connection);
                 }
 
-                GD.Print("4.5");
-                stateToConnectionsDict[from] = connectionsList;
-                GD.Print("4.6");
+                result.Dictionary[from] = connectionsList;
             }
-            GD.Print("5");
-            return stateToConnectionsDict;
+            return result;
         }
     }
 }

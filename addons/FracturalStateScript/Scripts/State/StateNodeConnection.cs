@@ -11,21 +11,23 @@ namespace Fractural.StateScript
         public string FromEvent { get; set; }
         public string ToMethod { get; set; }
 
-        public GDC.Dictionary ToGDDict(Node relativeToNode)
+        public GDC.Dictionary ToGDDict()
         {
             return new GDC.Dictionary()
             {
-                { nameof(ToState), relativeToNode.GetPathTo(ToState as Node) },
+                { nameof(ToState), (ToState as Node).Name },
                 { nameof(FromEvent), FromEvent },
                 { nameof(ToMethod), ToMethod },
             };
         }
 
-        public void FromGDDict(GDC.Dictionary dictionary, Node relativeToNode)
+        public bool FromGDDict(GDC.Dictionary dictionary, Node stateGraphNode)
         {
-            ToState = relativeToNode.GetNode<IAction>(dictionary.Get<NodePath>(nameof(ToState)));
+            ToState = stateGraphNode.GetNodeOrNull<IAction>(dictionary.Get<string>(nameof(ToState)));
+            if (ToState == null) return false;
             FromEvent = dictionary.Get<string>(nameof(FromEvent));
             ToMethod = dictionary.Get<string>(nameof(ToMethod));
+            return true;
         }
 
         public override string ToString()

@@ -33,7 +33,7 @@ namespace Fractural.StateScript
             EntryStates = States.Where(x => x is Entry).Cast<Entry>().ToArray();
             ExitStates = new HashSet<Exit>(States.Where(x => x is Exit).Cast<Exit>());
             CurrentContinuousStates = new HashSet<IState>();
-            StateToConnectionsDict = StateScriptUtils.ConnectionArrayDictFromGDDict(this, RawConnections);
+            StateToConnectionsDict = StateScriptUtils.ConnectionArrayDictFromGDDict(this, RawConnections).Dictionary;
 
             foreach (var state in States)
             {

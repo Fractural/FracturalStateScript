@@ -34,5 +34,7 @@ namespace Fractural.StateScript
     {
         event System.Action Exited;
         void Play();
+        string Comment { get; set; }
+        string Info { get; }
     }
 }

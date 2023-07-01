@@ -17,6 +17,16 @@ namespace Fractural.StateScript
     [Tool]
     public class StateScriptEditor : Control
     {
+        private class CSharpData
+        {
+            public IDictionary<IAction, IList<StateNodeConnection>> StateToConnectionsDict { get; set; }
+            public IDictionary<IAction, StateScriptGraphNode> StateToGraphNodeDict { get; set; }
+            public IStateGraph StateGraph { get; set; }
+            public IRawStateGraph RawStateGraph => StateGraph as IRawStateGraph;
+            public Node StateGraphNode => StateGraph as Node;
+            public Type[] StateTypes { get; set; }
+        }
+
         private GraphEdit _graphEdit;
         private Label _variableLabel;
 
@@ -26,17 +36,14 @@ namespace Fractural.StateScript
         private IAssetsRegistry _assetsRegistry;
         private EditorPlugin _plugin;
 
-        public IStateGraph StateGraph { get; private set; }
-        public IRawStateGraph RawStateGraph => StateGraph as IRawStateGraph;
-        public Node StateGraphNode => StateGraph as Node;
-        public IDictionary<IAction, IList<StateNodeConnection>> StateToConnectionsDict { get; private set; }
-        public IDictionary<IAction, StateScriptGraphNode> StateToGraphNodeDict { get; private set; }
+        private bool _canSave = true;
 
-        public Type[] StateTypes { get; private set; }
+        private CSharpData _data;
 
         public StateScriptEditor() { }
         public StateScriptEditor(EditorPlugin plugin, IAssetsRegistry assetsRegistry)
         {
+            _data = new CSharpData();
             RectMinSize = new Vector2(0, 200 * assetsRegistry.Scale);
 
             _plugin = plugin;
@@ -45,8 +52,11 @@ namespace Fractural.StateScript
             _graphEdit = new GraphEdit();
             AddChild(_graphEdit);
             _graphEdit.SetAnchorsAndMarginsPreset(LayoutPreset.Wide);
+            _graphEdit.Connect("delete_nodes_request", this, nameof(OnGraphEditDeleteNodesRequest));
+            _graphEdit.Connect("disconnection_request", this, nameof(OnGraphEditDisconnectionRequest));
             _graphEdit.Connect("connection_request", this, nameof(OnGraphEditConnectionRequest));
             _graphEdit.Connect("_end_node_move", this, nameof(OnGraphEditEndNodeMove));
+            _graphEdit.RightDisconnects = true;
 
             var marginContainer = new MarginContainer();
             int margin = (int)(16 * _assetsRegistry.Scale);
@@ -63,7 +73,7 @@ namespace Fractural.StateScript
 
             marginContainer.AddChild(_variableLabel);
 
-            StateTypes = AppDomain.CurrentDomain.GetAssemblies()
+            _data.StateTypes = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(x => x.GetTypes())
                 .Where((x) =>
                     !x.IsAbstract &&
@@ -82,7 +92,7 @@ namespace Fractural.StateScript
             _stateSearchDialog = new SearchDialog();
             _stateSearchDialog.Connect(nameof(SearchDialog.EntrySelected), this, nameof(OnStateSearchEntrySelected));
             _stateSearchDialog.Connect("popup_hide", this, nameof(OnStateSearchDialogHide));
-            _stateSearchDialog.SearchEntries = StateTypes.Select(x => new SearchEntry()
+            _stateSearchDialog.SearchEntries = _data.StateTypes.Select(x => new SearchEntry()
             {
                 Text = x.FullName
             }).ToArray();
@@ -113,12 +123,15 @@ namespace Fractural.StateScript
 
         public void Load(IStateGraph stateGraph)
         {
-            StateGraph = stateGraph;
+            _data.StateGraph = stateGraph;
             if (!(stateGraph is IRawStateGraph rawGraph) || !(stateGraph is Node stateGraphNode)) return;
-            StateToConnectionsDict = StateScriptUtils.ConnectionListDictFromGDDict(stateGraphNode, rawGraph.RawConnections);
-            StateToGraphNodeDict = new Dictionary<IAction, StateScriptGraphNode>();
+            var result = StateScriptUtils.ConnectionListDictFromGDDict(stateGraphNode, rawGraph.RawConnections);
+            bool needsResave = result.HadParseFailures;
+            _data.StateToConnectionsDict = result.Dictionary;
+            _data.StateToGraphNodeDict = new Dictionary<IAction, StateScriptGraphNode>();
             GD.Print("Loaded state graph, ", (stateGraph as Node).GetPath());
 
+            _graphEdit.ClearConnections();
             foreach (Node child in _graphEdit.GetChildren())
             {
                 if (child is StateScriptGraphNode)
@@ -126,17 +139,17 @@ namespace Fractural.StateScript
             }
 
             var uselessStates = new List<string>();
-            if (RawStateGraph.StateNodePositions == null)
-                RawStateGraph.StateNodePositions = new GDC.Dictionary();
-            foreach (string state in RawStateGraph.StateNodePositions.Keys)
+            if (_data.RawStateGraph.StateNodePositions == null)
+                _data.RawStateGraph.StateNodePositions = new GDC.Dictionary();
+            foreach (string state in _data.RawStateGraph.StateNodePositions.Keys)
             {
-                if (!StateGraphNode.HasNode(state))
-                {
-                    uselessStates.PushBack(state);
-                }
+                if (!_data.StateGraphNode.HasNode(state))
+                    uselessStates.Add(state);
             }
+            if (uselessStates.Count > 0)
+                needsResave = true;
             foreach (string uselessState in uselessStates)
-                RawStateGraph.StateNodePositions.Remove(uselessState);
+                _data.RawStateGraph.StateNodePositions.Remove(uselessState);
 
             foreach (Node child in stateGraphNode.GetChildren())
             {
@@ -144,32 +157,27 @@ namespace Fractural.StateScript
                 {
                     var graphNode = CreateGraphNode(state);
                     _graphEdit.AddChild(graphNode);
-                    graphNode.Offset = RawStateGraph.StateNodePositions.Get<Vector2>(child.Name);
-                    StateToGraphNodeDict[state] = graphNode;
+                    graphNode.Offset = _data.RawStateGraph.StateNodePositions.Get<Vector2>(child.Name);
+                    _data.StateToGraphNodeDict[state] = graphNode;
                 }
             }
 
-            bool connectionLoadFailed = false;
-            foreach (var pair in StateToConnectionsDict)
+            foreach (var pair in _data.StateToConnectionsDict)
             {
-                var state = pair.Key;
+                var fromState = pair.Key;
                 var connections = pair.Value;
                 foreach (var connection in connections)
                 {
-                    if (!StateToGraphNodeDict.TryGetValue(state, out var fromState) ||
-                        !StateToGraphNodeDict.TryGetValue(connection.ToState, out var toState))
-                    {
-                        connectionLoadFailed = true;
-                        continue;
-                    }
-                    _graphEdit.ConnectNode(fromState.Name, fromState.GetOutputPortFromEvent(connection.FromEvent), toState.Name, fromState.GetInputPortFromMethod(connection.ToMethod));
+                    var fromStateGraphNode = _data.StateToGraphNodeDict[fromState];
+                    var toStateGraphNode = _data.StateToGraphNodeDict[connection.ToState];
+                    _graphEdit.ConnectNode(fromStateGraphNode.Name, fromStateGraphNode.GetOutputPortFromEvent(connection.FromEvent), toStateGraphNode.Name, toStateGraphNode.GetInputPortFromMethod(connection.ToMethod));
                 }
             }
 
             GetTree().Connect("node_added", this, nameof(OnNodeAdded));
             GetTree().Connect("node_removed", this, nameof(OnNodeRemoved));
 
-            if (connectionLoadFailed)
+            if (needsResave)
                 Save();
         }
 
@@ -200,19 +208,21 @@ namespace Fractural.StateScript
                 node = new ActionGraphNode();
             }
             node.State = state;
+            node.Offset = _graphEdit.ScrollOffset + (_graphEdit.RectSize / 2) - node.RectSize;
+            node.Connect("close_request", this, nameof(OnGraphEditCloseNodeRequest), GDUtils.GDParams(node));
             return node;
         }
 
         private void Save()
         {
-            RawStateGraph.StateNodePositions = new GDC.Dictionary();
+            if (!_canSave) return;
+            _data.RawStateGraph.StateNodePositions = new GDC.Dictionary();
             foreach (Node child in _graphEdit.GetChildren())
             {
                 if (child is StateScriptGraphNode graphNode)
-                    RawStateGraph.StateNodePositions[(graphNode.State as Node).Name] = graphNode.Offset;
+                    _data.RawStateGraph.StateNodePositions[(graphNode.State as Node).Name] = graphNode.Offset;
             }
-            GD.Print("Saved raw state node pos ", JSON.Print(RawStateGraph.StateNodePositions));
-            RawStateGraph.RawConnections = StateScriptUtils.ConnectionListDictToGDDict(StateGraphNode, StateToConnectionsDict);
+            _data.RawStateGraph.RawConnections = StateScriptUtils.ConnectionListDictToGDDict(_data.StateToConnectionsDict);
         }
 
         private void OnStateSearchDialogHide()
@@ -230,29 +240,28 @@ namespace Fractural.StateScript
 
         private void OnStateSearchEntrySelected(string stateTypeName)
         {
-            var stateType = StateTypes.FirstOrDefault(x => x.FullName == stateTypeName);
+            var stateType = _data.StateTypes.FirstOrDefault(x => x.FullName == stateTypeName);
             var csharpScript = GD.Load<CSharpScript>(stateType.GetCustomAttribute<CSharpScriptAttribute>().FilePath);
             var stateInstance = csharpScript.New() as Node;
-            StateGraphNode.AddChild(stateInstance);
+            _data.StateGraphNode.AddChild(stateInstance);
             stateInstance.Owner = _plugin.GetEditorInterface().GetEditedSceneRoot();
         }
 
         private void OnNodeAdded(Node node)
         {
-            if (node.GetParent() == StateGraphNode && node is IAction state)
+            if (node.GetParent() == _data.StateGraphNode && node is IAction state)
             {
                 var stateScriptNode = CreateGraphNode(state);
-                stateScriptNode.Connect("close_request", this, nameof(OnStateGraphNodeClosed), GDUtils.GDParams(node));
                 _graphEdit.AddChild(stateScriptNode);
             }
         }
 
         private void OnNodeRemoved(Node node)
         {
-            if (node.GetParent() == StateGraphNode && node is IAction state)
+            if (node.GetParent() == _data.StateGraphNode && node is IAction state)
             {
-                StateToConnectionsDict.Remove(state);
-                foreach (var connections in StateToConnectionsDict.Values)
+                _data.StateToConnectionsDict.Remove(state);
+                foreach (var connections in _data.StateToConnectionsDict.Values)
                 {
                     for (int i = connections.Count - 1; i >= 0; i--)
                         if (connections[i].ToState == state)
@@ -261,33 +270,26 @@ namespace Fractural.StateScript
             }
         }
 
-        private void OnStateGraphNodeClosed(StateGraphNode node)
-        {
-            (node.State as Node).QueueFree();
-            node.QueueFree();
-        }
-
         private void OnGraphEditEndNodeMove()
         {
-            GD.Print("End node move, saving");
             Save();
         }
 
-        private void OnGraphEditConnectionRequest(string from, int from_slot, string to, int to_slot)
+        private void OnGraphEditConnectionRequest(string from, int fromSlot, string to, int toSlot)
         {
             var fromNode = _graphEdit.GetNode(from) as StateScriptGraphNode;
             var toNode = _graphEdit.GetNode(to) as StateScriptGraphNode;
             if (fromNode == null || toNode == null) return;
 
-            if (!_graphEdit.IsNodeConnected(from, from_slot, to, to_slot) &&
-                _graphEdit.ConnectNode(from, from_slot, to, to_slot) == Error.Ok)
+            if (!_graphEdit.IsNodeConnected(from, fromSlot, to, toSlot) &&
+                _graphEdit.ConnectNode(from, fromSlot, to, toSlot) == Error.Ok)
             {
-                var fromEvent = fromNode.GetOutputPortEvent(from_slot);
-                var toMethod = toNode.GetInputPortMethod(to_slot);
+                var fromEvent = fromNode.GetOutputPortEvent(fromSlot);
+                var toMethod = toNode.GetInputPortMethod(toSlot);
 
-                if (!StateToConnectionsDict.ContainsKey(fromNode.State))
-                    StateToConnectionsDict[fromNode.State] = new List<StateNodeConnection>();
-                StateToConnectionsDict[fromNode.State].Add(new StateNodeConnection()
+                if (!_data.StateToConnectionsDict.ContainsKey(fromNode.State))
+                    _data.StateToConnectionsDict[fromNode.State] = new List<StateNodeConnection>();
+                _data.StateToConnectionsDict[fromNode.State].Add(new StateNodeConnection()
                 {
                     FromEvent = fromEvent,
                     ToMethod = toMethod,
@@ -296,6 +298,65 @@ namespace Fractural.StateScript
 
                 Save();
             }
+            Save();
+        }
+
+        private void OnGraphEditDisconnectionRequest(string from, int fromSlot, string to, int toSlot)
+        {
+            var fromNode = _graphEdit.GetNode(from) as StateScriptGraphNode;
+            var toNode = _graphEdit.GetNode(to) as StateScriptGraphNode;
+            if (fromNode == null || toNode == null) return;
+
+            if (_graphEdit.IsNodeConnected(from, fromSlot, to, toSlot))
+            {
+                _graphEdit.DisconnectNode(from, fromSlot, to, toSlot);
+
+                var fromEvent = fromNode.GetOutputPortEvent(fromSlot);
+                var toMethod = toNode.GetInputPortMethod(toSlot);
+
+                if (!_data.StateToConnectionsDict.ContainsKey(fromNode.State))
+                    return;
+
+                var connectionsArray = _data.StateToConnectionsDict[fromNode.State];
+                for (int i = 0; i < connectionsArray.Count; i++)
+                {
+                    var connection = connectionsArray[i];
+                    if (connection.FromEvent == fromEvent && connection.ToState == toNode && connection.ToMethod == toMethod)
+                    {
+                        connectionsArray.RemoveAt(i);
+                        break;
+                    }
+                }
+            }
+            Save();
+        }
+
+        private void OnGraphEditCloseNodeRequest(Node node)
+        {
+            OnGraphEditDeleteNodesRequest(new GDC.Array() { node.Name });
+        }
+
+        private void OnGraphEditDeleteNodesRequest(GDC.Array nodes)
+        {
+            _canSave = false;
+            HashSet<string> deletedNodes = new HashSet<string>();
+            foreach (string nodeName in nodes)
+            {
+                var node = _graphEdit.GetNodeOrNull(nodeName);
+                if (node == null)
+                    continue;
+                if (node is StateScriptGraphNode graphNode)
+                    (graphNode.State as Node).QueueFree();
+                deletedNodes.Add(node.Name);
+                node.QueueFree();
+            }
+            foreach (GDC.Dictionary connection in _graphEdit.GetConnectionList())
+            {
+                if (deletedNodes.Contains(connection.Get<string>("from")) || deletedNodes.Contains(connection.Get<string>("to")))
+                    OnGraphEditDisconnectionRequest(connection.Get<string>("from"), connection.Get<int>("from_port"), connection.Get<string>("to"), connection.Get<int>("to_port"));
+            }
+            _canSave = true;
+            Save();
         }
     }
 }

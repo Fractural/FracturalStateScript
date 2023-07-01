@@ -20,7 +20,7 @@ namespace Fractural.StateScript
         private Label _commentLabel;
         private string _commentText = "";
         [Export(PropertyHint.MultilineText)]
-        private string CommentText
+        protected string CommentText
         {
             get => _commentText;
             set
@@ -34,7 +34,7 @@ namespace Fractural.StateScript
         private Label _infoLabel;
         private string _infoText = "";
         [Export(PropertyHint.MultilineText)]
-        private string InfoText
+        protected string InfoText
         {
             get => _infoText;
             set
@@ -182,8 +182,10 @@ namespace Fractural.StateScript
                 var rightLabel = child.GetChild(1) as Label;
                 if (rightLabel == null)
                     return;
+                SetSlotEnabledLeft(index, GetSlotNameLeft(index) != "");
                 if (leftLabel.Text != GetSlotNameLeft(index))
                     leftLabel.Text = GetSlotNameLeft(index);
+                SetSlotEnabledRight(index, GetSlotNameRight(index) != "");
                 if (rightLabel.Text != GetSlotNameRight(index))
                     rightLabel.Text = GetSlotNameRight(index);
                 if (index >= maxCount)

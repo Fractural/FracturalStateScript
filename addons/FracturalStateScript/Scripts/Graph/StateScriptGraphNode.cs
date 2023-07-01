@@ -75,6 +75,8 @@ namespace Fractural.StateScript
                     AddSlotRight(outputName);
                 }
             }
+            CommentText = newState.Comment;
+            InfoText = newState.Info;
         }
     }
 }
